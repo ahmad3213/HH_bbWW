@@ -10,6 +10,7 @@ meta_data:
   - event
   selection_cut: (tree['lep1_type'] >= 0) & (tree['lep2_type'] >= 0) & (tree['event']%4
     == 0)
+  iterate_cut: (lep1_type >= 0) & (lep2_type >= 0) & (event%4 == 0)
   spin_mass_dist:
     '0':
       '1000': 0.08456160241874527
@@ -35,6 +36,7 @@ meta_data:
       '700': 0.08688586545729403
       '800': 0.08781179138321996
   storage_folder: /eos/user/d/daebi/ANA_FOLDER/anaTuples/dev/Run3_2022/
+  empty_dict_example: /afs/cern.ch/work/d/daebi/diHiggs/HH_bbWW/Studies/DNN/DNN_dataset_2024-09-13-13-56-15/GluGlutoRadiontoHHto2B2Vto2B2L2Nu_Combined/GluGlutoRadiontoHHto2B2Vto2B2L2Nu_Combined.root
 processes:
 - batch_size: 377
   batch_start: 0
@@ -62,4 +64,4 @@ processes:
   class_value: 0
   datasets:
   - /afs/cern.ch/work/d/daebi/diHiggs/HH_bbWW/Studies/DNN/DNN_dataset_2024-09-13-13-56-15/GluGlutoRadiontoHHto2B2Vto2B2L2Nu_Combined
-  nBatches: 3956
+  nBatches: 100 #3956

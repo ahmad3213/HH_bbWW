@@ -8,6 +8,8 @@ selection_branches: ['lep1_type', 'lep2_type', 'weight_MC_Lumi_pu', 'event']
 
 selection_cut: (tree['lep1_type'] >= 0) & (tree['lep2_type'] >= 0)
 
+iterate_cut: (lep1_type >= 0 )& (lep2_type >= 0) & (event%{nParity} == {parity_scan})
+
 parity_func: (tree['event']%{nParity} == {parity_scan})
 nParity: 4
 

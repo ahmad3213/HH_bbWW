@@ -7,94 +7,6 @@ import yaml
 import awkward as ak
 from tqdm import tqdm
 
-def variable_dict(batch_size, process_subdict, process_iter, output_array, mass_values):
-    vardict = {}
-    write_array = np.array(output_array)
-    nBatchesThisChunk = len(write_array['lep1_pt'])//batch_size
-    if len(write_array['lep1_pt'])%batch_size != 0: print("UH OH")
-    if nBatchesThisChunk == 0: return vardict
-
-    class_value = process_subdict['class_value']
-    mass_value = process_subdict['mass_value']
-
-    for nBatch in range(nBatchesThisChunk):
-        process_array = next(process_iter)
-        index_start = process_subdict['batch_start'] + (batch_size*nBatch)
-        index_end = index_start+process_subdict['batch_size']
-
-        write_array['class_value'][index_start:index_end] = np.full(index_end-index_start, class_value)
-        if mass_value <= 0:
-            write_array['mass_value'][index_start:index_end] = np.random.choice(mass_values, size=index_end-index_start).astype(float)
-        else:
-            write_array['mass_value'][index_start:index_end] = np.full(index_end-index_start, mass_value)
-
-
-        write_array['lep1_pt'][index_start:index_end] =     np.asarray(process_array['lep1_pt'])
-        write_array['lep1_eta'][index_start:index_end] =    np.asarray(process_array['lep1_eta'])
-        write_array['lep1_phi'][index_start:index_end] =    np.asarray(process_array['lep1_phi'])
-        write_array['lep1_mass'][index_start:index_end] =   np.asarray(process_array['lep1_mass'])
-
-        write_array['lep2_pt'][index_start:index_end] =     np.asarray(process_array['lep2_pt'])
-        write_array['lep2_eta'][index_start:index_end] =    np.asarray(process_array['lep2_eta'])
-        write_array['lep2_phi'][index_start:index_end] =    np.asarray(process_array['lep2_phi'])
-        write_array['lep2_mass'][index_start:index_end] =   np.asarray(process_array['lep2_mass'])
-
-    vardict = {
-        'class_value':  write_array['class_value'],
-        'mass_value':   write_array['mass_value'],
-
-        'lep1_pt':      write_array['lep1_pt'],
-        'lep1_eta':     write_array['lep1_eta'],
-        'lep1_phi':     write_array['lep1_phi'],
-        'lep1_mass':    write_array['lep1_mass'],
-
-        'lep2_pt':      write_array['lep2_pt'],
-        'lep2_eta':     write_array['lep2_eta'],
-        'lep2_phi':     write_array['lep2_phi'],
-        'lep2_mass':    write_array['lep2_mass'],
-    }
-    return vardict
-
-
-def init_empty_vardict(batch_size):
-    empty_dict = {
-        'class_value':  np.zeros(batch_size),
-        'mass_value':   np.zeros(batch_size),
-
-        'lep1_pt':      np.zeros(batch_size),
-        'lep1_eta':     np.zeros(batch_size),
-        'lep1_phi':     np.zeros(batch_size),
-        'lep1_mass':    np.zeros(batch_size),
-
-        'lep2_pt':      np.zeros(batch_size),
-        'lep2_eta':     np.zeros(batch_size),
-        'lep2_phi':     np.zeros(batch_size),
-        'lep2_mass':    np.zeros(batch_size),
-    }
-    return empty_dict
-
-
-
-
-def iterate_uproot(fnames, batch_size, nBatchesPerChunk, selection_branches, selection_cut):
-    for iter in uproot.iterate(fnames, step_size=nBatchesPerChunk*batch_size):
-        p = 0
-        while p < nBatchesPerChunk*batch_size:
-            if p+batch_size > len(iter):
-                print("Bad new bears, end of file")
-                print(fnames)
-                print(p+batch_size)
-                print(len(iter))
-                break
-            else:
-                tree = iter.arrays(selection_branches)
-                filtered = eval(selection_cut)
-                print("here dummy")
-                print(filtered)
-                out_array = iter[p:p+batch_size]
-                p+= batch_size
-                yield out_array
-
 
 def create_signal_files(config_dict, output_folder):
     storage_folder = config_dict['storage_folder']
@@ -108,7 +20,9 @@ def create_signal_files(config_dict, output_folder):
         if use_combined:
             combined_name = signal_dict['combined_name']
 
-            out_file = uproot.recreate(f"{os.path.join(output_folder, combined_name)}.root")
+            out_file_folder = os.path.join(output_folder, combined_name)
+
+            out_file = uproot.recreate(f"{os.path.join(out_file_folder, combined_name)}.root")
 
             new_array = {}
             nEvents = 0
@@ -160,6 +74,7 @@ def create_dict(config_dict, output_folder):
         process_dict[key] = {}
 
     for nParity in range(config_dict['nParity']):
+        empty_dict_example_file = ""
         nParity_Cut = config_dict['parity_func'].format(nParity = config_dict['nParity'], parity_scan = nParity)
         total_cut = f"{selection_cut} & {nParity_Cut}"
 
@@ -195,7 +110,7 @@ def create_dict(config_dict, output_folder):
                     
                 process_dict[signal_name][dataset_name]['all_extensions'] = [dataset_name]
 
-                with uproot.open(f"{os.path.join(output_folder, dataset_name)}.root:Events") as h:
+                with uproot.open(f"{os.path.join(output_folder, dataset_name, dataset_name)}.root:Events") as h:
                     tree = h.arrays(selection_branches)
                     process_dict[signal_name][dataset_name]['total'] += int(h.num_entries)
                     process_dict[signal_name][dataset_name]['total_cut'] += int(np.sum(eval(total_cut)))
@@ -233,6 +148,8 @@ def create_dict(config_dict, output_folder):
                             process_dict[signal_name][dataset_name]['total_cut'] += int(np.sum(eval(total_cut)))
                             eval_string = f"float(np.sum(tree[{total_cut}].weight_MC_Lumi_pu))"
                             process_dict[signal_name][dataset_name]['weight_cut'] += eval(eval_string)
+                        empty_dict_example_file = os.path.join(process_dir, nano_file)
+
 
 
 
@@ -341,7 +258,7 @@ def create_dict(config_dict, output_folder):
                 print(f"Trying to fix, incrementing {max_batches_subprocess} batch size {process_dict[process][max_batches_subprocess]['batch_size']} by 1")
                 process_dict[process][max_batches_subprocess]['batch_size'] += 1
                 print(f"nBatches went from {process_dict[process][max_batches_subprocess]['nBatches']}")
-                process_dict[process][max_batches_subprocess]['nBatches'] = int(process_dict[process][max_batches_subprocess]['total']/process_dict[process][max_batches_subprocess]['batch_size'])
+                process_dict[process][max_batches_subprocess]['nBatches'] = int(process_dict[process][max_batches_subprocess]['total_cut']/process_dict[process][max_batches_subprocess]['batch_size'])
                 print(f"To {process_dict[process][max_batches_subprocess]['nBatches']}")
                 batch_size_sum += 1
 
@@ -377,6 +294,9 @@ def create_dict(config_dict, output_folder):
         machine_yaml['meta_data']['batch_dict'] = batch_dict
         machine_yaml['meta_data']['selection_branches'] = selection_branches
         machine_yaml['meta_data']['selection_cut'] = total_cut
+        machine_yaml['meta_data']['iterate_cut'] = config_dict['iterate_cut'].format(nParity = config_dict['nParity'], parity_scan = nParity)
+        machine_yaml['meta_data']['empty_dict_example'] = empty_dict_example_file #Example for empty dict structure
+
 
         machine_yaml['meta_data']['spin_mass_dist'] = spin_mass_dist #Dict of spin/mass distribution values for random choice parametric
 
@@ -402,6 +322,160 @@ def create_dict(config_dict, output_folder):
 
 
 
+def init_empty_vardict(batch_size, branch_list, branch_depth):
+    empty_dict = {}
+    for i, branch in enumerate(branch_list):
+        this_depth = branch_depth[i] #Since CentralJet is an awkward array, we need to know the general shape (depth) and wrap some more [] around to save the tree
+        array_to_fill = ak.from_numpy(np.zeros(batch_size))
+        for i in range(1, this_depth):
+            array_to_fill = ak.singletons(array_to_fill)
+        empty_dict[branch] = array_to_fill
+
+    extra_branches = ['class_value']
+    for branch in extra_branches:
+        empty_dict[branch] = ak.from_numpy(np.zeros(batch_size))
+    return empty_dict
+
+
+def variable_dict(batch_size, process_iter, process_dict, output_array):
+    vardict = {}
+    write_array = ak.Array(output_array) #The output file currently
+    test_branch = output_array.fields[0]
+    nBatchesThisChunk = len(write_array[test_branch])//batch_size
+    if len(write_array[test_branch])%batch_size != 0: print("UH OH")
+    if nBatchesThisChunk == 0: return vardict
+
+    class_value = process_dict['class_value']
+
+    for nBatch in range(nBatchesThisChunk):
+        process_array = next(process_iter) #The input process to fill into the output file
+        index_start = process_dict['batch_start'] + (batch_size*nBatch)
+        index_end = index_start+process_dict['batch_size']
+
+
+        temp_dict = {}
+
+        branch_list = [x for x in output_array.fields if not x.startswith('n')] #Uproot saves awkward arrays with a counter branch n****, ignore that 
+        for branch in branch_list:
+            if branch not in process_array.fields:
+                temp_dict[branch] = write_array[branch]
+            else:
+                temp_dict[branch] = ak.values_astype(ak.concatenate([write_array[branch][:index_start], process_array[branch], write_array[branch][index_end:]]), np.float32)
+
+
+        if vardict: #If a dict is empty it will be false, just a check on when to merge vs when to start
+            values = zip(vardict.values(), temp_dict.values())
+            vardict = dict(zip(temp_dict.keys(), values))
+        else:
+            vardict = temp_dict
+
+    return vardict
+
+
+
+
+def iterate_uproot(fnames, batch_size, meta_data, useCut=False):
+    cut = meta_data['iterate_cut']
+    if not useCut:
+        cut = None
+    nBatch = 0
+    for iter in uproot.iterate(fnames, step_size='1 GB', cut = cut):
+        p = 0
+        print(f"At batch number {nBatch}")
+        while p < len(iter):
+            if p+batch_size > len(iter):
+                print("Bad new bears, end of iteration")
+                break
+            else:
+                out_array = iter[p:p+batch_size]
+                p+= batch_size
+                nBatch+= 1
+                yield out_array
+
+
+def create_file(config_yaml, out_filename):
+    config_dict = {}
+    with open(config_yaml, 'r') as file:
+        config_dict = yaml.safe_load(file)
+    nBatches = None
+    print(config_dict.keys())
+    for process in config_dict['processes']:
+        if (nBatches is None) or ((process['nBatches'] <= nBatches) and (process['nBatches'] != 0)):
+            nBatches = process['nBatches']
+    print(f"Going to make {nBatches} batches")
+
+    #Get branch shape form an example process file
+    branch_list = []
+    branch_depth = []
+    example_file = config_dict['meta_data']['empty_dict_example']
+    
+    with uproot.open(example_file+":Events") as file:
+        branch_list = [x for x in file.keys() if not x.startswith('n')] #Uproot saves awkward arrays with a counter branch n****, ignore that 
+        for branch in branch_list:
+            arr = file[branch].array()
+            branch_depth.append(arr.layout.minmax_depth[1])
+    
+
+    batch_size = config_dict['meta_data']['batch_dict']['batch_size']
+    with uproot.recreate(out_filename) as file:
+        """
+        #for nBatch in range(nBatches):
+        for nBatch in tqdm(range(nBatches)):
+            #Need to create an empty_dict
+            #Need to get branches from an existing file
+            empty_dict = init_empty_vardict(nBatches*batch_size, branch_list, branch_depth)
+            if 'Events' not in '\t'.join(file.keys()):
+                file['Events'] = empty_dict
+            else:
+                file['Events'].extend(empty_dict)
+
+        """
+
+        #Need to create an empty_dict
+        #Need to get branches from an existing file
+        empty_dict = init_empty_vardict(nBatches*batch_size, branch_list, branch_depth)
+        if 'Events' not in '\t'.join(file.keys()):
+            file['Events'] = empty_dict
+        else:
+            file['Events'].extend(empty_dict)
+
+
+    print("Created empty file")
+
+    for process in config_dict['processes']:
+        if process['batch_size'] <= 0: continue
+        print("Starting next process")
+        out_file = uproot.open(out_filename)
+        tmp_file = uproot.recreate('tmp.root')
+
+        process_filelist = [ f"{x}/*.root:Events" for x in process['datasets'] ]
+
+        process_iter = iterate_uproot(process_filelist, process['batch_size'], config_dict['meta_data'], useCut=True)
+        output_iter = iterate_uproot(f"{out_filename}:Events", batch_size, config_dict['meta_data'])
+        print(process_filelist)
+
+        print(f"Looping for files {process_filelist}. Memory usage in MB is {psutil.Process(os.getpid()).memory_info()[0] / float(2 ** 20)}")
+        for output_array in output_iter:
+            process_dict = process
+            new_write_dict = variable_dict(batch_size, process_iter, process_dict, output_array)
+
+            if 'Events' not in '\t'.join(tmp_file.keys()):
+                tmp_file['Events'] = new_write_dict
+            else:
+                tmp_file['Events'].extend(new_write_dict)
+
+        out_file.close()
+        tmp_file.close()
+        os.system(f"rm {out_filename}")
+        os.system(f"mv tmp.root {out_filename}")
+
+        print("Hit the end of the output array, moving to next process")
+
+    print("Sad")
+
+
+
+
 
 if __name__ == '__main__':
     import argparse
@@ -419,4 +493,7 @@ if __name__ == '__main__':
 
     create_signal_files(config_dict, output_folder)
     create_dict(config_dict, output_folder)
-    #create_file(out_file)
+    print(output_folder)
+    print(os.listdir(output_folder))
+    for i, yamlname in enumerate([fname for fname in os.listdir(output_folder) if ((".yaml" in fname) and (fname != args.config))]):
+        create_file(os.path.join(output_folder, yamlname), f"testing{i}.root")
