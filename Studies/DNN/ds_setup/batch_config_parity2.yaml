@@ -1,0 +1,65 @@
+meta_data:
+  batch_dict:
+    GluGlutoRadion: 100
+    TT: 400
+    batch_size: 500
+  selection_branches:
+  - lep1_type
+  - lep2_type
+  - weight_MC_Lumi_pu
+  - event
+  selection_cut: (tree['lep1_type'] >= 0) & (tree['lep2_type'] >= 0) & (tree['event']%4
+    == 2)
+  spin_mass_dist:
+    '0':
+      '1000': 0.08401623795432127
+      '1200': 0.01953865998937704
+      '1400': 0.01914029896046741
+      '1600': 0.017091585097503605
+      '1800': 0.01612413688443736
+      '2000': 0.01466347977843539
+      '250': 0.03792017603763563
+      '2500': 0.014511723195993627
+      '260': 0.041543364443432734
+      '270': 0.04480613096593065
+      '280': 0.04770847560512937
+      '300': 0.05341831701950072
+      '3000': 0.011969800440094089
+      '350': 0.0607405721223158
+      '4000': 0.010376356324455573
+      '450': 0.07521435617269899
+      '5000': 0.009067455800895364
+      '550': 0.080981106305486
+      '600': 0.08333333333333333
+      '650': 0.08504059488580318
+      '700': 0.08741179148645573
+      '800': 0.08538204719629713
+  storage_folder: /eos/user/d/daebi/ANA_FOLDER/anaTuples/dev/Run3_2022/
+processes:
+- batch_size: 377
+  batch_start: 0
+  class_value: 1
+  datasets:
+  - /eos/user/d/daebi/ANA_FOLDER/anaTuples/dev/Run3_2022/TTto2L2Nu
+  - /eos/user/d/daebi/ANA_FOLDER/anaTuples/dev/Run3_2022/TTto2L2Nu_ext1
+  nBatches: 43284
+- batch_size: 0
+  batch_start: 377
+  class_value: 1
+  datasets:
+  - /eos/user/d/daebi/ANA_FOLDER/anaTuples/dev/Run3_2022/TTto4Q
+  - /eos/user/d/daebi/ANA_FOLDER/anaTuples/dev/Run3_2022/TTto4Q_ext1
+  nBatches: 0
+- batch_size: 23
+  batch_start: 377
+  class_value: 1
+  datasets:
+  - /eos/user/d/daebi/ANA_FOLDER/anaTuples/dev/Run3_2022/TTtoLNu2Q
+  - /eos/user/d/daebi/ANA_FOLDER/anaTuples/dev/Run3_2022/TTtoLNu2Q_ext1
+  nBatches: 5194
+- batch_size: 100
+  batch_start: 400
+  class_value: 0
+  datasets:
+  - /afs/cern.ch/work/d/daebi/diHiggs/HH_bbWW/Studies/DNN/DNN_dataset_2024-09-13-13-56-15/GluGlutoRadiontoHHto2B2Vto2B2L2Nu_Combined
+  nBatches: 3956

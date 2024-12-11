@@ -1,0 +1,65 @@
+meta_data:
+  batch_dict:
+    GluGlutoRadion: 100
+    TT: 400
+    batch_size: 500
+  selection_branches:
+  - lep1_type
+  - lep2_type
+  - weight_MC_Lumi_pu
+  - event
+  selection_cut: (tree['lep1_type'] >= 0) & (tree['lep2_type'] >= 0) & (tree['event']%4
+    == 3)
+  spin_mass_dist:
+    '0':
+      '1000': 0.0846470510120843
+      '1200': 0.020848746988408932
+      '1400': 0.018667121962324285
+      '1600': 0.017547853470680858
+      '1800': 0.016409614326636693
+      '2000': 0.015195492572989584
+      '250': 0.037751598277464764
+      '2500': 0.014095194733746893
+      '260': 0.04139396353840608
+      '270': 0.043860148350501775
+      '280': 0.04676265816781439
+      '300': 0.052264147364027846
+      '3000': 0.011572097964448998
+      '350': 0.0619202094360025
+      '4000': 0.010054445772390112
+      '450': 0.07535143133572364
+      '5000': 0.008157380532316506
+      '550': 0.08191527706637831
+      '600': 0.08515925862690418
+      '650': 0.08483675753609167
+      '700': 0.0854817597177167
+      '800': 0.08610779124694098
+  storage_folder: /eos/user/d/daebi/ANA_FOLDER/anaTuples/dev/Run3_2022/
+processes:
+- batch_size: 377
+  batch_start: 0
+  class_value: 1
+  datasets:
+  - /eos/user/d/daebi/ANA_FOLDER/anaTuples/dev/Run3_2022/TTto2L2Nu
+  - /eos/user/d/daebi/ANA_FOLDER/anaTuples/dev/Run3_2022/TTto2L2Nu_ext1
+  nBatches: 43284
+- batch_size: 0
+  batch_start: 377
+  class_value: 1
+  datasets:
+  - /eos/user/d/daebi/ANA_FOLDER/anaTuples/dev/Run3_2022/TTto4Q
+  - /eos/user/d/daebi/ANA_FOLDER/anaTuples/dev/Run3_2022/TTto4Q_ext1
+  nBatches: 0
+- batch_size: 23
+  batch_start: 377
+  class_value: 1
+  datasets:
+  - /eos/user/d/daebi/ANA_FOLDER/anaTuples/dev/Run3_2022/TTtoLNu2Q
+  - /eos/user/d/daebi/ANA_FOLDER/anaTuples/dev/Run3_2022/TTtoLNu2Q_ext1
+  nBatches: 5203
+- batch_size: 100
+  batch_start: 400
+  class_value: 0
+  datasets:
+  - /afs/cern.ch/work/d/daebi/diHiggs/HH_bbWW/Studies/DNN/DNN_dataset_2024-09-13-13-56-15/GluGlutoRadiontoHHto2B2Vto2B2L2Nu_Combined
+  nBatches: 3956

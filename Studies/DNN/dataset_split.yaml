@@ -1,0 +1,38 @@
+batch_dict:
+  TT: 400
+  GluGlutoRadion: 100
+
+storage_folder: /eos/user/d/daebi/ANA_FOLDER/anaTuples/dev/Run3_2022/
+
+selection_branches: ['lep1_type', 'lep2_type', 'weight_MC_Lumi_pu', 'event']
+
+selection_cut: (tree['lep1_type'] >= 0) & (tree['lep2_type'] >= 0)
+
+parity_func: (tree['event']%{nParity} == {parity_scan})
+nParity: 4
+
+signal:
+  GluGlutoRadion:
+    class_value: 0
+    spin: 0
+    mass_points: [ 250, 260, 270, 280, 300, 350, 450, 550, 600, 650, 700, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2500, 3000, 4000, 5000 ]
+    dataset_name_format:
+      GluGlutoRadiontoHHto2B2Vto2B2L2Nu_M-{}
+    combined_name:
+      GluGlutoRadiontoHHto2B2Vto2B2L2Nu_Combined
+    use_combined:
+      True
+
+background:
+  TT:
+    class_value: 1
+    background_datasets: #If there is an extension, just add more to the list
+      #TT: #When we use TTinclusive and appropriately weight, we actually can not make many batches ):
+      #- TT_ext1
+      TTto2L2Nu:
+      - TTto2L2Nu_ext1
+      TTto4Q:
+      - TTto4Q_ext1
+      TTtoLNu2Q:
+      - TTtoLNu2Q_ext1
+  
