@@ -1,14 +1,16 @@
 batch_dict:
+  GluGlutoRadion: 100 #It is important to put signal first since signal has extra branches
   TT: 400
-  GluGlutoRadion: 100
+  DY: 400
 
-storage_folder: /eos/user/d/daebi/ANA_FOLDER/anaTuples/dev/Run3_2022/
+
+storage_folder: /eos/user/d/daebi/ANA_FOLDER_DEV/anaTuples/Run3_2022EE_11Dec24/Run3_2022EE/
 
 selection_branches: ['lep1_type', 'lep2_type', 'weight_MC_Lumi_pu', 'event']
 
-selection_cut: (tree['lep1_type'] >= 0) & (tree['lep2_type'] >= 0)
+selection_cut: (tree['lep1_type'] > 0) & (tree['lep2_type'] > 0)
 
-iterate_cut: (lep1_type >= 0 )& (lep2_type >= 0) & (event%{nParity} == {parity_scan})
+iterate_cut: (lep1_type > 0) && (lep2_type > 0) && (event%{nParity} == {parity_scan})
 
 parity_func: (tree['event']%{nParity} == {parity_scan})
 nParity: 4
@@ -19,7 +21,7 @@ signal:
     spin: 0
     mass_points: [ 250, 260, 270, 280, 300, 350, 450, 550, 600, 650, 700, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2500, 3000, 4000, 5000 ]
     dataset_name_format:
-      GluGlutoRadiontoHHto2B2Vto2B2L2Nu_M-{}
+      GluGlutoRadiontoHHto2B2Vto2B2L2Nu_M_{}
     combined_name:
       GluGlutoRadiontoHHto2B2Vto2B2L2Nu_Combined
     use_combined:
@@ -37,4 +39,8 @@ background:
       - TTto4Q_ext1
       TTtoLNu2Q:
       - TTtoLNu2Q_ext1
-  
+  DY:
+    class_value: 2
+    background_datasets:
+      DYto2L_M_10to50_amcatnloFXFX: []
+      DYto2L_M_50_amcatnloFXFX: []
