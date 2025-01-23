@@ -111,7 +111,7 @@ def create_file(config_yaml, out_filename):
 
     print("Finished create file, will copy tmp file to final output")
 
-    os.system(f"cp {tmp_filename} {out_filename}")
+    os.system(f"cp {tmpnext_filename} {out_filename}")
 
 
 
@@ -125,7 +125,8 @@ if __name__ == '__main__':
 
 
     headers_dir = os.path.dirname(os.path.abspath(__file__))
-    headers = [ 'AnalysisTools.h', 'TupleMaker.h' ] #Order here matters since TupleMaker requires AnalysisTools
+    #headers = [ 'AnalysisTools.h', 'TupleMaker.h' ] #Order here matters since TupleMaker requires AnalysisTools
+    headers = [ 'TupleMaker.h' ] #Order here matters since TupleMaker requires AnalysisTools
     for header in headers:
         header_path = os.path.join(headers_dir, header)
         if not ROOT.gInterpreter.Declare(f'#include "{header_path}"'):
