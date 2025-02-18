@@ -14,3 +14,5 @@ The following functions are used to generate histograms:
 
 ## Running the Scripts
 To successfully run the scripts, you need to include some additional functions **before execution**. These functions are **commented in the script** (see *"the functions I have added to `studyYumengAnalysisTools.h`"*).
+
+The run options can be defined at the end of script.
