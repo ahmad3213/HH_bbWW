@@ -1,0 +1,15 @@
+[submodule "FLAF"]
+	path = FLAF
+	url = git@github.com:cms-flaf/Framework.git
+[submodule "Corrections"]
+	path = Corrections
+	url = git@github.com:cms-flaf/Corrections.git
+[submodule "SyncTool"]
+	path = SyncTool
+	url = git@github.com:cms-flaf/SyncTool.git
+[submodule "StatInference"]
+	path = StatInference
+	url = git@github.com:cms-flaf/StatInference.git
+[submodule "inference"]
+	path = inference
+	url = ssh://git@gitlab.cern.ch:7999/hh/tools/inference.git
