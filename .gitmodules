@@ -1,6 +1,6 @@
 [submodule "FLAF"]
 	path = FLAF
-	url = git@github.com:cms-flaf/Framework.git
+	url = git@github.com:cms-flaf/FLAF.git
 [submodule "Corrections"]
 	path = Corrections
 	url = git@github.com:cms-flaf/Corrections.git
