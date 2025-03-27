@@ -298,7 +298,8 @@ def create_dict(config_dict, output_folder):
         machine_yaml['meta_data']['selection_cut'] = total_cut
         machine_yaml['meta_data']['iterate_cut'] = config_dict['iterate_cut'].format(nParity = config_dict['nParity'], parity_scan = nParity)
         machine_yaml['meta_data']['empty_dict_example'] = empty_dict_example_file #Example for empty dict structure
-
+        machine_yaml['meta_data']['input_filename'] = f'batchfile{nParity}.root'
+        machine_yaml['meta_data']['output_DNNname'] = f'ResHH_Classifier_parity{nParity}'
 
         machine_yaml['meta_data']['spin_mass_dist'] = spin_mass_dist #Dict of spin/mass distribution values for random choice parametric
 
@@ -332,7 +333,8 @@ if __name__ == '__main__':
     with open(args.config, 'r') as file:
         config_dict = yaml.safe_load(file)
 
-    output_folder = f"DNN_dataset_{datetime.today().strftime('%Y-%m-%d-%H-%M-%S')}"
+    output_base = "DNN_Datasets"
+    output_folder = os.path.join(output_base, f"Dataset_{datetime.today().strftime('%Y-%m-%d-%H-%M-%S')}")
     os.makedirs(output_folder, exist_ok=True)
     os.system(f"cp {args.config} {output_folder}/.")
 
