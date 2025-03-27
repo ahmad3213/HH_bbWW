@@ -4,25 +4,42 @@ from datetime import datetime
 import yaml
 from tqdm import tqdm
 import ROOT
+import FLAF.Common.Utilities as Utilities
+import Analysis.hh_bbww as analysis
 
 ROOT.gROOT.SetBatch(True)
 ROOT.EnableThreadSafety()
 
-def create_file(config_yaml, out_filename):
+sys.path.append(os.environ['ANALYSIS_PATH'])
+ana_path = os.environ['ANALYSIS_PATH']
+
+header_path_AnalysisTools = "FLAF/include/AnalysisTools.h"
+ROOT.gInterpreter.Declare(f'#include "{os.path.join(ana_path,header_path_AnalysisTools)}"')
+header_path_AnalysisMath = "FLAF/include/AnalysisMath.h"
+ROOT.gInterpreter.Declare(f'#include "{os.path.join(ana_path,header_path_AnalysisMath)}"')
+header_path_MT2 = "FLAF/include/MT2.h"
+ROOT.gInterpreter.Declare(f'#include "{os.path.join(ana_path,header_path_MT2)}"')
+header_path_Lester_mt2_bisect = "FLAF/include/Lester_mt2_bisect.cpp"
+ROOT.gInterpreter.Declare(f'#include "{os.path.join(ana_path,header_path_Lester_mt2_bisect)}"')
+lep1_p4 = "ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double>>(lep1_pt,lep1_eta,lep1_phi,lep1_mass)"
+lep2_p4 = "ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double>>(lep2_pt,lep2_eta,lep2_phi,lep2_mass)"
+b1_p4 = "ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double>>(centralJet_pt[0],centralJet_eta[0],centralJet_phi[0],centralJet_mass[0])"
+b2_p4 = "ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double>>(centralJet_pt[1],centralJet_eta[1],centralJet_phi[1],centralJet_mass[1])"
+MET_p4 = "ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double>>(met_pt, 0., met_phi, 0.)"
+initialized = True
+
+
+
+def create_file(config_dict, output_folder, out_filename):
     print(f"Starting create file. Memory usage in MB is {psutil.Process(os.getpid()).memory_info()[0] / float(2 ** 20)}")
-    config_dict = {}
-    with open(config_yaml, 'r') as file:
-        config_dict = yaml.safe_load(file)
     nBatches = None
     print(config_dict.keys())
     for process in config_dict['processes']:
         if (nBatches is None) or ((process['nBatches'] <= nBatches) and (process['nBatches'] != 0)):
             nBatches = process['nBatches']
 
-    #nBatches = 1
     print(f"Going to make {nBatches} batches")
     batch_size = config_dict['meta_data']['batch_dict']['batch_size']
-    #batch_size = 100 #Super small batch just to test
 
     step_idx = 0
 
@@ -35,12 +52,10 @@ def create_file(config_yaml, out_filename):
     for process in config_dict['processes']:
         process_filelist = [ f"{x}/*.root" for x in process['datasets'] ]
 
-        tmp_filename = f'tmp{step_idx}.root'
-        tmpnext_filename = f'tmp{step_idx+1}.root'
+        tmp_filename = os.path.join(output_folder, f'tmp{step_idx}.root')
+        tmpnext_filename = os.path.join(output_folder, f'tmp{step_idx+1}.root')
 
         print(process_filelist)
-        #process_filelist = ["/eos/user/d/daebi/ANA_FOLDER_DEV/anaTuples/Run3_2022EE_11Dec24/Run3_2022EE/TTto2L2Nu/nano_0.root"]
-        #process_filelist = ["/afs/cern.ch/work/d/daebi/diHiggs/HH_bbWW/Studies/DNN/DNN_dataset_2025-01-07-16-54-05/GluGlutoRadiontoHHto2B2Vto2B2L2Nu_Combined/GluGlutoRadiontoHHto2B2Vto2B2L2Nu_Combined.root"]
         df_in = ROOT.RDataFrame('Events', process_filelist)
 
         #Filter for nLeps and Parity (iterate cut in config)
@@ -77,7 +92,7 @@ def create_file(config_yaml, out_filename):
         queue_size = 10
         max_entries = nEntriesPerBatch*nBatches
 
-        tuple_maker = ROOT.analysis.TupleMaker(*local_column_types)(queue_size, max_entries) #For debug, lets fill whole thing with ttbar
+        tuple_maker = ROOT.analysis.TupleMaker(*local_column_types)(queue_size, max_entries)
 
         df_out = tuple_maker.FillDF(ROOT.RDF.AsRNode(df_out), ROOT.RDF.AsRNode(df_in), local_to_master_map, master_size, local_column_names_vec, nBatchStart, nBatchEnd, batch_size)
 
@@ -89,6 +104,7 @@ def create_file(config_yaml, out_filename):
             else:
                 if column_name not in local_column_names: continue
                 df_out = df_out.Redefine(str(column_name), f'_entry ? _entry->GetValue<{column_type}>({column_idx}) : {column_name} ')
+
 
         df_out = df_out.Redefine('is_valid', '(is_valid) || (_entry)')
 
@@ -109,7 +125,45 @@ def create_file(config_yaml, out_filename):
 
         step_idx += 1
 
-    print("Finished create file, will copy tmp file to final output")
+
+
+    print("Finished create file loop, now we must add the DNN variables")
+    # Increment the name indexes before I embarass myself again
+    tmp_filename = f'tmp{step_idx}.root'
+    tmpnext_filename = f'tmp{step_idx+1}.root'
+
+    df_out = ROOT.RDataFrame('Events', tmp_filename)
+
+
+    snapshotOptions = ROOT.RDF.RSnapshotOptions()
+    #snapshotOptions.fOverwriteIfExists=False
+    #snapshotOptions.fLazy=True
+    snapshotOptions.fMode="RECREATE"
+    snapshotOptions.fCompressionAlgorithm = getattr(ROOT.ROOT, 'k' + 'ZLIB')
+    snapshotOptions.fCompressionLevel = 4
+    ROOT.RDF.Experimental.AddProgressBar(df_out)
+    print("Going to snapshot")
+    # Only need to save the prexisting columns plus the new DNN variables
+    save_column_names = ROOT.std.vector("string")(df_out.GetColumnNames())
+    df_out = analysis.AddDNNVariables(df_out)
+    highlevel_names = [
+        'HT', 'dR_dilep', 'dR_dibjet', 
+        'dR_dilep_dijet', 'dR_dilep_dibjet',
+        'dPhi_lep1_lep2', 'dPhi_jet1_jet2',
+        'dPhi_MET_dilep', 'dPhi_MET_dibjet',
+        'min_dR_lep0_jets', 'min_dR_lep1_jets',
+        'MT', 'MT2', 
+        'MT2_ll', 'MT2_bb', 'MT2_blbl',
+        'CosTheta_bb',
+        'll_mass',
+        'bb_mass', 'bb_mass_PNetRegPtRawCorr', 'bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino'
+    ]
+    for highlevel_name in highlevel_names:
+        save_column_names.push_back(highlevel_name)
+    df_out.Snapshot('Events', tmpnext_filename, save_column_names, snapshotOptions)
+
+
+    print(f"Finished create file, will copy tmp file to final output {out_filename}")
 
     os.system(f"cp {tmpnext_filename} {out_filename}")
 
@@ -135,6 +189,11 @@ if __name__ == '__main__':
 
     output_folder = args.config_folder
     print(f"Starting the create file loop. Memory usage in MB is {psutil.Process(os.getpid()).memory_info()[0] / float(2 ** 20)}")
-    for i, yamlname in enumerate([fname for fname in os.listdir(output_folder) if ((".yaml" in fname) and ("batch_config_parity" in fname))]):
-        print(f"Starting batch {i}")
-        create_file(os.path.join(output_folder, yamlname), os.path.join(output_folder, f"batchfile{i}.root"))
+    yaml_list = [fname for fname in os.listdir(output_folder) if ((".yaml" in fname) and ("batch_config_parity" in fname))]
+    yaml_list.sort()
+    for i, yamlname in enumerate(yaml_list):
+        print(f"Starting batch {i} with yaml {yamlname}")
+        config_dict = {}
+        with open(os.path.join(output_folder, yamlname), 'r') as file:
+            config_dict = yaml.safe_load(file)            
+        create_file(config_dict, output_folder, os.path.join(output_folder, config_dict['meta_data']['input_filename']))
