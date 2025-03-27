@@ -1,19 +1,23 @@
 batch_dict:
   GluGlutoRadion: 100 #It is important to put signal first since signal has extra branches
-  TT: 400
-  DY: 400
+  GluGlutoBulkGraviton: 100
+  TT: 2800
+  # DY: 0
 
 
-storage_folder: /eos/user/d/daebi/ANA_FOLDER_DEV/anaTuples/Run3_2022EE_11Dec24/Run3_2022EE/
+storage_folder: /eos/user/d/daebi/bbWW/anaTuples/shared/Run3_2022/
 
-selection_branches: ['lep1_type', 'lep2_type', 'weight_MC_Lumi_pu', 'event']
+selection_branches: ['lep1_type', 'lep2_type', 'weight_MC_Lumi_pu', 'event', 'centralJet_pt']
 
-selection_cut: (tree['lep1_type'] > 0) & (tree['lep2_type'] > 0)
-
-iterate_cut: (lep1_type > 0) && (lep2_type > 0) && (event%{nParity} == {parity_scan})
-
+#Cuts for uproot
+selection_cut: (tree['lep1_type'] > 0) & (tree['lep2_type'] > 0) & (ak.count(tree['centralJet_pt'], axis=1) > 1)
 parity_func: (tree['event']%{nParity} == {parity_scan})
+
 nParity: 4
+
+#Cuts for RDF in creating the training file
+iterate_cut: (lep1_type > 0) && (lep2_type > 0) && (centralJet_pt.size() > 1) && (event%{nParity} == {parity_scan})
+
 
 signal:
   GluGlutoRadion:
@@ -26,6 +30,17 @@ signal:
       GluGlutoRadiontoHHto2B2Vto2B2L2Nu_Combined
     use_combined:
       True
+  GluGlutoBulkGraviton:
+    class_value: 0
+    spin: 2
+    mass_points: [ 250, 260, 270, 280, 300, 350, 450, 550, 600, 650, 700, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2500, 3000, 4000, 5000 ]
+    dataset_name_format:
+      GluGlutoBulkGravitontoHHto2B2Vto2B2L2Nu_M_{}
+    combined_name:
+      GluGlutoBulkGravitontoHHto2B2Vto2B2L2Nu_Combined
+    use_combined:
+      True
+
 
 background:
   TT:
@@ -39,8 +54,8 @@ background:
       - TTto4Q_ext1
       TTtoLNu2Q:
       - TTtoLNu2Q_ext1
-  DY:
-    class_value: 2
-    background_datasets:
-      DYto2L_M_10to50_amcatnloFXFX: []
-      DYto2L_M_50_amcatnloFXFX: []
+  # DY:
+  #   class_value: 2
+  #   background_datasets:
+  #     DYto2L_M_10to50_amcatnloFXFX: []
+  #     DYto2L_M_50_amcatnloFXFX: []
