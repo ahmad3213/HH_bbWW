@@ -6,6 +6,12 @@ import awkward as ak
 import os
 import matplotlib.pyplot as plt
 import sklearn.metrics
+import yaml
+import vector
+import tqdm
+import ROOT
+
+
 
 def Scheduler(epoch, lr):
     if epoch < 20:
@@ -14,6 +20,9 @@ def Scheduler(epoch, lr):
         if epoch % 2 == 0:
             return 0.9*lr
         return lr
+
+
+
 
 
 #Artem's custom loss, will need to create a loss to uncorrelate bkg estimation vars (H_bb for Muhammad and DY?)
@@ -59,11 +68,13 @@ class DataWrapper():
 
         self.feature_names = None
         self.listfeature_names = None
+        self.highlevelfeatures_names = None
         self.label_name = None
 
         self.features_no_param = None
         self.features = None
         self.listfeatures = None
+        self.hlv = None
         self.param_values = None
         self.labels = None
 
@@ -114,6 +125,15 @@ class DataWrapper():
         print(f"Added features {features} with index {index}")
         print(f"New feature list {self.listfeature_names}")
 
+    def AddHighLevelFeature(self, features):
+        if self.highlevelfeatures_names == None:
+            self.highlevelfeatures_names = features
+        else:
+            self.highlevelfeatures_names = self.highlevelfeatures_names + features
+
+        print(f"Added high level features {features}")
+        print(f"New feature list {self.highlevelfeatures_names}")
+
     def AddInputLabel(self, labels_name):
         if self.label_name != None:
             print("What are you doing? You already defined the input label branch")
@@ -136,12 +156,21 @@ class DataWrapper():
         print("Got features, but its a np array")
 
         default_value = 0.0
-        #Right now, list features doesn't work
-        if self.listfeatures != None: self.listfeatures = np.array([ak.fill_none(ak.pad_none(getattr(branches, feature_name), index+1), default_value)[:,index] for [feature_name,index] in self.listfeature_names]).transpose()
+        if self.listfeature_names != None: 
+            self.listfeatures = np.array([ak.fill_none(ak.pad_none(getattr(branches, feature_name), index+1), default_value)[:,index] for [feature_name,index] in self.listfeature_names]).transpose()
         print("Got the list features")
 
         #Need to append the value features and the listfeatures together
-        if self.listfeatures != None: self.features = np.append(self.features, self.listfeatures, axis=1)
+        if self.listfeature_names != None: 
+            print("We have list features!")
+            print(self.features)
+            self.features = np.append(self.features, self.listfeatures, axis=1)
+            print(self.features)
+
+        if self.highlevelfeatures_names != None: 
+            self.hlv = np.array([getattr(branches, feature_name) for feature_name in self.highlevelfeatures_names]).transpose()
+            self.features = np.append(self.features, self.hlv, axis=1)
+
 
         labels_branch_values = np.array(getattr(branches, self.label_name))
 
@@ -152,8 +181,10 @@ class DataWrapper():
         self.param_values = np.array([[x if (x > 0) else np.random.choice(self.param_list) for x in getattr(branches, 'X_mass') ]]).transpose()
         print("Got the param values")
 
+
         self.features_no_param = self.features
         if self.use_parametric: self.features = np.append(self.features, self.param_values, axis=1)
+
 
 
     def DefineTrainTestSet(self, batch_size, ratio):
@@ -225,6 +256,9 @@ class DataWrapper():
 
 
 
+
+
+
     def validate_output(self, model):
         plotbins = 100
         plotrange = (0.0, 1.0)
@@ -242,6 +276,7 @@ class DataWrapper():
         for para_masspoint in self.param_list:
             print(f"Looking at mass {para_masspoint}")
             if para_masspoint > 1000: continue
+            if para_masspoint not in [300, 450, 550, 800]: continue
             predict_list = []
             weight_list = []
 
@@ -254,7 +289,7 @@ class DataWrapper():
                 if i == 0:
                     #This is signal, lets plot the masses separate
                     for real_mass in self.param_list:
-                        if abs(real_mass - para_masspoint) > 300: 
+                        if abs(real_mass - para_masspoint) > 200: 
                             continue
                         plotlabel = f'{label_name} M{real_mass}'
                         this_mass_mask = self.param_values[self.labels == i] == real_mass
@@ -280,7 +315,7 @@ class DataWrapper():
 
 
 def train_dnn():
-    input_file_name = "DNN_dataset_2025-01-09-16-37-10/batchfile0.root"
+    input_file_name = "DNN_dataset_2025-02-22-15-17-42/batchfile0.root"
 
 
     dw = DataWrapper()
@@ -289,9 +324,19 @@ def train_dnn():
     dw.AddInputFeatures(['met_pt', 'met_phi'])
     dw.AddInputFeaturesList(['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 0)
     dw.AddInputFeaturesList(['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 1)
+    dw.AddHighLevelFeature([
+                            'HT', 'dR_dilep', 'dR_dibjet', 
+                            'dR_dilep_dijet', #'dR_dilep_dibjet',
+                            'dPhi_MET_dilep', 'dPhi_MET_dibjet',
+                            'min_dR_lep0_jets', 'min_dR_lep1_jets',
+                            'MT', 'MT2_bbWW'
+                            #'mt2_ll_lester', 'mt2_bb_lester', 'mt2_blbl_lester'
+                            ])
+
+
 
     dw.UseParametric(True)
-    dw.SetOutputFolder("newfolder2")
+    dw.SetOutputFolder("hlv_from_analysis_MT2Fixed")
 
     dw.AddInputLabel('sample_type')
     dw.ReadFile(input_file_name)
@@ -376,14 +421,27 @@ def train_dnn():
         callbacks=[schedule_callback, checkpoint_callback]
     )
 
-    model.save(f"{model_name}.keras")
+    model.save(os.path.join(dw.output_folder, f"{model_name}.keras"))
+
+    print("Saved model, now save features")
+    features_config = {
+        'features': dw.feature_names,
+        'listfeatures': dw.listfeature_names,
+        'highlevelfeatures': dw.highlevelfeatures_names,
+        'use_parametric': dw.use_parametric
+    }
+     
+    with open(os.path.join(dw.output_folder, 'dnn_config.yaml'), 'w', ) as file:
+        yaml.dump(features_config, file)
+
+
     PlotMetric(history, model_name, "loss")
 
 
 
 
     # Cool! In the debugging stage, now lets also predict the output on batch1 file!
-    input_file_name = "DNN_dataset_2025-01-09-16-37-10/batchfile1.root"
+    input_file_name = "DNN_dataset_2025-02-22-15-17-42/batchfile1.root"
     dw.ReadFile(input_file_name)
 
     dw.monitor_param(model, 300)
