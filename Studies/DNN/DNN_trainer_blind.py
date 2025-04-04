@@ -58,11 +58,11 @@ class DataWrapper():
         self.labels_binary = None
         self.mbb = None
         self.mbb_region = None
-        self.mbb_region_binary = None
-        self.mbb_region_random = None
 
         self.class_weight = None
         self.adv_weight = None
+        self.class_target = None
+        self.adv_target = None
 
         self.train_features = None
         self.train_labels = None
@@ -70,6 +70,8 @@ class DataWrapper():
         self.train_mbb = None
         self.train_class_weight = None
         self.train_adv_weight = None
+        self.train_class_target = None
+        self.train_adv_target = None
 
         self.test_features = None
         self.test_labels = None
@@ -77,6 +79,8 @@ class DataWrapper():
         self.test_mbb = None
         self.test_class_weight = None
         self.test_adv_weight = None
+        self.test_class_target = None
+        self.test_adv_target = None
 
         self.param_list = [250, 260, 270, 280, 300, 350, 450, 550, 600, 650, 700, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2500, 3000, 4000, 5000 ]
         self.use_parametric = False
@@ -149,9 +153,6 @@ class DataWrapper():
         if self.feature_names == None:
             print("Uknown branches to read! DefineInputFeatures first!")
             return
-        if self.label_name == None:
-            print("No label branch defined!")
-            return
 
         print(f"Reading file {file_name}")
 
@@ -162,7 +163,6 @@ class DataWrapper():
         features_to_load = features_to_load + self.highlevelfeatures_names
 
         features_to_load.append(self.mbb_name)
-        features_to_load.append(self.label_name)
         features_to_load.append('X_mass')
 
         print(f"Only loading these features {features_to_load}")
@@ -189,14 +189,8 @@ class DataWrapper():
             self.features = np.append(self.features, self.hlv, axis=1)
 
 
-        labels_branch_values = np.array(getattr(branches, self.label_name))
-
-        self.labels = np.array([self.value_to_label[str(branch_val)] for branch_val in labels_branch_values])
-        self.labels_binary = np.array([self.value_to_label_binary[str(branch_val)] for branch_val in labels_branch_values])
-        print("Got labels")
-
-
-        self.mbb, self.mbb_region, self.mbb_region_binary, self.mbb_region_random = self.SetMbbRegion(branches)
+        self.mbb = np.array(getattr(branches, self.mbb_name))
+        # self.mbb, self.mbb_region, self.mbb_region_binary, self.mbb_region_random = self.SetMbbRegion(branches)
         print("Set mbb regions")
 
         #Add parametric variable
@@ -215,6 +209,10 @@ class DataWrapper():
         branches = tree.arrays(entry_start=entry_start, entry_stop=entry_stop)
         self.class_weight = np.array(getattr(branches, 'class_weight'))
         self.adv_weight = np.array(getattr(branches, 'adv_weight'))
+        self.class_target = np.array(getattr(branches, 'class_target'))
+        self.adv_target = np.array(getattr(branches, 'adv_target'))
+
+
 
     def SetMbbRegion(self, branches):
         print("Inside setting mbb region!")
@@ -241,32 +239,12 @@ class DataWrapper():
 
         return mbb, mbb_region, mbb_region_binary, mbb_region_random
 
-
-
-    def SetClassWeights(self):
-        print("Inside the SetCateogryWeights!")
-        nTotal = len(self.labels)
-        weight_dict = {}
-
-        if self.binary:
-            unique_labels = np.unique(self.labels_binary)
-            for i, unique_label in enumerate(unique_labels):
-                weight_dict[unique_label] = tf.cast(nTotal/np.sum(self.labels_binary == unique_label), tf.float32)
-
-        else:
-            unique_labels = np.unique(self.labels)
-            weight_dict = {}
-            for i, unique_label in enumerate(unique_labels):
-                weight_dict[unique_label] = tf.cast(nTotal/np.sum(self.labels == unique_label), tf.float32)
-
-        return weight_dict
     
-
 
     def DefineTrainTestSet(self, batch_size, ratio):
         print("Create the self.train_features and self.train_labels lists here")
 
-        nBatches = len(self.labels)/batch_size
+        nBatches = len(self.class_target)/batch_size
         nBatchesTest = int(nBatches*ratio)
         nBatchesTrain = nBatches-nBatchesTest
 
@@ -279,22 +257,21 @@ class DataWrapper():
 
         print("Got the start/end, it is")
         print(f"{trainStart} {trainEnd} {testStart} {testEnd}")
+        print("Features are")
+        print(self.features)
 
         self.train_features = self.features[trainStart:trainEnd]
-        self.train_labels = self.labels[trainStart:trainEnd]
-        self.train_labels_binary = self.labels_binary[trainStart:trainEnd]
-        self.train_mbb = self.mbb_region_binary[trainStart:trainEnd]
-        self.train_mbb_random = self.mbb_region_random[trainStart:trainEnd]
         self.train_class_weight = self.class_weight[trainStart:trainEnd]
         self.train_adv_weight = self.adv_weight[trainStart:trainEnd]
-        
+        self.train_class_target = self.class_target[trainStart:trainEnd]
+        self.train_adv_target = self.adv_target[trainStart:trainEnd]
+
         self.test_features = self.features[testStart:testEnd]
-        self.test_labels = self.labels[testStart:testEnd]
-        self.test_labels_binary = self.labels_binary[testStart:testEnd]
-        self.test_mbb = self.mbb_region_binary[testStart:testEnd]
-        self.test_mbb_random = self.mbb_region_random[testStart:testEnd]
         self.test_class_weight = self.class_weight[testStart:testEnd]
         self.test_adv_weight = self.adv_weight[testStart:testEnd]
+        self.test_class_target = self.class_target[trainStart:trainEnd]
+        self.test_adv_target = self.adv_target[trainStart:trainEnd]
+
 
     def monitor_param(self, model, param_value):
         self.SetPredictParamValue(param_value)
@@ -363,314 +340,6 @@ class DataWrapper():
         save_path = os.path.join(self.output_folder, model_name.split('.')[0])
         os.makedirs(save_path, exist_ok=True)
 
-        for para_masspoint in self.param_list:
-            continue
-            print(f"Looking at mass {para_masspoint}")
-            if para_masspoint > 1000: continue
-            if para_masspoint not in [300, 450, 550, 800]: continue
-
-
-
-            nBinsForChi2 = 10 # We must set up our quant binning object first so it exists across the loops
-            quant_binning = None
-
-            # And lets set up our list of ROOT TH1D for Signal / Bkg1 / Bkg2 / ...
-            # This is so we can draw all backgrounds on the same plot at the end using quant binning
-            all_SR_plots = []
-            all_SR_legend = ROOT.TLegend(0.5, 0.8, 0.9, 0.9)
-
-            for i, label_name in enumerate(self.label_names):
-                canvas = ROOT.TCanvas("c1", "c1", 800, 600)
-                print(f"On label {label_name}")
-
-                labels = self.labels
-                mbb_region = (self.mbb_region).transpose()[0]
-
-
-                self.SetPredictParamValue(para_masspoint)
-
-                this_sample_mask = labels == i
-
-                # Check that there are any events with this label
-                if len(self.features_paramSet[this_sample_mask]) == 0: continue
-
-                features_this_sample = self.features_paramSet[this_sample_mask]
-                features_this_sample_no_parametric = self.features_no_param[this_sample_mask]
-                mbb_region_this_sample = self.mbb_region[this_sample_mask]
-                mbb_this_sample = self.mbb[this_sample_mask]
-
-                features_to_use = features_this_sample if self.use_parametric else features_this_sample_no_parametric
-
-                pred = sess.run(None, {'x': features_to_use})
-                pred = pred[0][:,0] #Only get first entry (category prediction), all events, then first category (signal)
-                print("pred")
-                print(pred)
-
-                mbbSR = mbb_region_this_sample == 0
-                mbbCR_low = mbb_region_this_sample == -1
-                mbbCR_high = mbb_region_this_sample == 1
-
-                pred_mbb_SR = pred[mbbSR]
-                pred_mbb_CR_low = pred[mbbCR_low]
-                pred_mbb_CR_high = pred[mbbCR_high]
-
-
-
-                if i == 0:
-                    #This is signal, lets plot the masses separate
-                    for real_mass in self.param_list:
-                        if abs(real_mass - para_masspoint) > 0: 
-                            continue
-                        plotlabel = f'{label_name} M{real_mass}'
-
-                        param_values_this_sample = self.param_values[this_sample_mask]
-
-
-                        param_values_mbb_SR = param_values_this_sample[mbbSR]
-                        this_mass_mask_SR = (param_values_mbb_SR == real_mass).flatten()
-
-                        pred_mbb_SR_thismass = pred_mbb_SR[this_mass_mask_SR]
-
-                        param_values_mbb_CR_low = param_values_this_sample[mbbCR_low]
-                        this_mass_mask_CR_low = (param_values_mbb_CR_low == real_mass).flatten()
-
-                        pred_mbb_CR_low_thismass = pred_mbb_CR_low[this_mass_mask_CR_low]
-
-                        param_values_mbb_CR_high = param_values_this_sample[mbbCR_high]
-                        this_mass_mask_CR_high = (param_values_mbb_CR_high == real_mass).flatten()
-
-                        pred_mbb_CR_high_thismass = pred_mbb_CR_high[this_mass_mask_CR_high]
-
-
-                        ks_value_low = scipy.stats.kstest(np.sort(pred_mbb_SR_thismass), np.sort(pred_mbb_CR_low_thismass)).pvalue
-                        ks_value_high = scipy.stats.kstest(np.sort(pred_mbb_SR_thismass), np.sort(pred_mbb_CR_high_thismass)).pvalue
-
-                        # Set up signal quant binning in the SignalRegion of m_bb
-                        quant_binning = np.zeros(nBinsForChi2+1) # Need +1 because 10 bins actually have 11 edges
-                        quant_binning[1:nBinsForChi2] = np.quantile(pred_mbb_SR_thismass, [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
-                        quant_binning[-1] = 1.0 
-                        print("We found quant binning")
-                        print(quant_binning)
-
-                        val_mbb_SR, bins_mbb_SR = np.histogram(pred_mbb_SR_thismass, bins=quant_binning, range=(0.0, 1.0))
-                        val_mbb_CR_low, bins_mbb_CR_low = np.histogram(pred_mbb_CR_low_thismass, bins=quant_binning, range=(0.0, 1.0))
-                        val_mbb_CR_high, bins_mbb_CR_high = np.histogram(pred_mbb_CR_high_thismass, bins=quant_binning, range=(0.0, 1.0))
-
-                        ROOT_hist_mbb_SR = ROOT.TH1D("hist_mbb_SR", "hist_mbb_SR", nBinsForChi2, 0.0, 1.0)
-                        ROOT_hist_mbb_CR_low = ROOT.TH1D("hist_mbb_CR_low", "hist_mbb_CR_low", nBinsForChi2, 0.0, 1.0)
-                        ROOT_hist_mbb_CR_high = ROOT.TH1D("hist_mbb_CR_high", "hist_mbb_CR_high", nBinsForChi2, 0.0, 1.0)
-
-
-                        for binnum in range(nBinsForChi2):
-                            ROOT_hist_mbb_SR.SetBinContent(binnum+1, val_mbb_SR[binnum])
-                            ROOT_hist_mbb_SR.SetBinError(binnum+1, val_mbb_SR[binnum]**(0.5))
-                            
-
-                            ROOT_hist_mbb_CR_low.SetBinContent(binnum+1, val_mbb_CR_low[binnum])
-                            ROOT_hist_mbb_CR_low.SetBinError(binnum+1, val_mbb_CR_low[binnum]**(0.5))
-
-
-                            ROOT_hist_mbb_CR_high.SetBinContent(binnum+1, val_mbb_CR_high[binnum])
-                            ROOT_hist_mbb_CR_high.SetBinError(binnum+1, val_mbb_CR_high[binnum]**(0.5))
-
-
-
-
-                        ROOT_hist2d = ROOT.TH2D("hist_2d", "hist_2d", mbb_bins, mbb_min, mbb_max, nBinsForChi2, 0.0, 1.0)
-                        pred_for_2d = pred[(param_values_this_sample == real_mass).flatten()]
-                        mbb_for_2d = mbb_this_sample[(param_values_this_sample == real_mass).flatten()]
-
-                        for dnn_bin in range(nBinsForChi2):
-                            dnn_low = quant_binning[dnn_bin]
-                            dnn_high = quant_binning[dnn_bin+1]
-                            val, bins = np.histogram(mbb_for_2d[(pred_for_2d > dnn_low) & (pred_for_2d < dnn_high)], bins=mbb_bins, range=(mbb_min, mbb_max))
-                            for mbb_binnum in range(mbb_bins):
-                                val_to_fill = val[mbb_binnum]
-                                val_to_fill = val_to_fill / np.sum(val)
-                                ROOT_hist2d.SetBinContent(mbb_binnum+1, dnn_bin+1, val_to_fill)
-                                ROOT_hist2d.SetBinError(mbb_binnum+1, dnn_bin+1, val_to_fill**(0.5))
-                        ROOT_hist2d.SetStats(0)
-                        ROOT_hist2d.Draw("colz")
-                        ROOT_hist2d.SetTitle(f"2D {label_name} M{para_masspoint}")
-                        ROOT_hist2d.GetXaxis().SetTitle("m_bb reco")
-                        ROOT_hist2d.GetYaxis().SetTitle("DNN Bin (1 == Signal)")
-                        canvas.SaveAs(os.path.join(self.output_folder, model_name, f'2D_parity{parity_index}_{label_name}_M{para_masspoint}.pdf'))
-
-
-                        chi2_value_low = ROOT_hist_mbb_SR.Chi2Test(ROOT_hist_mbb_CR_low, option='WW')
-                        chi2_value_high = ROOT_hist_mbb_SR.Chi2Test(ROOT_hist_mbb_CR_high, option='WW')
-
-                        ROOT_hist_mbb_SR.Scale(1.0/ROOT_hist_mbb_SR.Integral())
-                        ROOT_hist_mbb_CR_low.Scale(1.0/ROOT_hist_mbb_CR_low.Integral())
-                        ROOT_hist_mbb_CR_high.Scale(1.0/ROOT_hist_mbb_CR_high.Integral())
-
-
-                        plotlabel = f"{plotlabel} Chi2_low={chi2_value_low} Chi2_high={chi2_value_high}"
-
-                        plt.hist(pred_mbb_SR_thismass+1.0, bins=non_quant_binning+1.0, range=plotrange, density=True, histtype='step', label=plotlabel, alpha=0.5)
-                        plt.hist(pred_mbb_CR_low_thismass, bins=non_quant_binning, range=plotrange, density=True, histtype='step', label=plotlabel, alpha=0.5)
-                        plt.hist(pred_mbb_CR_high_thismass+2.0, bins=non_quant_binning+2.0, range=plotrange, density=True, histtype='step', label=plotlabel, alpha=0.5)
-
-                        ROOT_hist_mbb_SR.Draw()
-                        ROOT_hist_mbb_SR.SetTitle(plotlabel)
-                        ROOT_hist_mbb_SR.SetStats(0)
-                        min_val = max(0.0001, min(ROOT_hist_mbb_SR.GetMinimum(), ROOT_hist_mbb_CR_low.GetMinimum(), ROOT_hist_mbb_CR_high.GetMinimum()))
-                        max_val = max(ROOT_hist_mbb_SR.GetMaximum(), ROOT_hist_mbb_CR_low.GetMaximum(), ROOT_hist_mbb_CR_high.GetMaximum())
-                        ROOT_hist_mbb_SR.GetYaxis().SetRangeUser(0.01*min_val, 100*max_val)
-                        ROOT_hist_mbb_CR_low.SetLineColor(ROOT.kRed)
-                        ROOT_hist_mbb_CR_low.Draw("same")
-                        ROOT_hist_mbb_CR_high.SetLineColor(ROOT.kGreen+2)
-                        ROOT_hist_mbb_CR_high.Draw("same")
-
-                        legend = ROOT.TLegend(0.5, 0.8, 0.9, 0.9)
-                        legend.AddEntry(ROOT_hist_mbb_SR, "m_bb SR")
-                        legend.AddEntry(ROOT_hist_mbb_CR_low, "m_bb CR Low")
-                        legend.AddEntry(ROOT_hist_mbb_CR_high, "m_bb CR High")
-                        legend.Draw()
-
-                        print(f"Setting canvas to log scale with range {min_val}, {max_val}")
-                        canvas.SetLogy()
-                        canvas.SaveAs(os.path.join(self.output_folder, model_name, f'blindcheck{parity_index}_{label_name}_M{para_masspoint}.pdf'))
-
-
-                        # Add plot to the all_SR_plots list
-                        all_SR_plots.append(ROOT_hist_mbb_SR)
-
-                else:
-                    plotlabel = label_name
-
-                    ks_value_low = scipy.stats.kstest(np.sort(pred_mbb_SR), np.sort(pred_mbb_CR_low)).pvalue
-                    ks_value_high = scipy.stats.kstest(np.sort(pred_mbb_SR), np.sort(pred_mbb_CR_high)).pvalue
-
-                    nBinsForChi2 = 10
-                    val_mbb_SR, bins_mbb_SR = np.histogram(pred_mbb_SR, bins=quant_binning, range=(0.0, 1.0))
-                    val_mbb_CR_low, bins_mbb_CR_low = np.histogram(pred_mbb_CR_low, bins=quant_binning, range=(0.0, 1.0))
-                    val_mbb_CR_high, bins_mbb_CR_high = np.histogram(pred_mbb_CR_high, bins=quant_binning, range=(0.0, 1.0))
-
-                    ROOT_hist_mbb_SR = ROOT.TH1D("hist_mbb_SR", "hist_mbb_SR", nBinsForChi2, 0.0, 1.0)
-                    ROOT_hist_mbb_CR_low = ROOT.TH1D("hist_mbb_CR_low", "hist_mbb_CR_low", nBinsForChi2, 0.0, 1.0)
-                    ROOT_hist_mbb_CR_high = ROOT.TH1D("hist_mbb_CR_high", "hist_mbb_CR_high", nBinsForChi2, 0.0, 1.0)
-
-
-                    for binnum in range(nBinsForChi2):
-                        ROOT_hist_mbb_SR.SetBinContent(binnum+1, val_mbb_SR[binnum])
-                        ROOT_hist_mbb_SR.SetBinError(binnum+1, val_mbb_SR[binnum]**(0.5))
-                        
-
-                        ROOT_hist_mbb_CR_low.SetBinContent(binnum+1, val_mbb_CR_low[binnum])
-                        ROOT_hist_mbb_CR_low.SetBinError(binnum+1, val_mbb_CR_low[binnum]**(0.5))
-
-
-                        ROOT_hist_mbb_CR_high.SetBinContent(binnum+1, val_mbb_CR_high[binnum])
-                        ROOT_hist_mbb_CR_high.SetBinError(binnum+1, val_mbb_CR_high[binnum]**(0.5))
-
-
-                    ROOT_hist2d = ROOT.TH2D("hist_2d", "hist_2d", mbb_bins, mbb_min, mbb_max, nBinsForChi2, 0.0, 1.0)
-                    pred_for_2d = pred
-                    mbb_for_2d = mbb_this_sample
-
-                    print(f"Inside label {label_name} for 2D hist")
-                    for dnn_bin in range(nBinsForChi2):
-                        print(f"At dnn bin {dnn_bin}")
-                        dnn_low = quant_binning[dnn_bin]
-                        dnn_high = quant_binning[dnn_bin+1]
-                        val, bins = np.histogram(mbb_for_2d[(pred_for_2d > dnn_low) & (pred_for_2d < dnn_high)], bins=mbb_bins, range=(mbb_min, mbb_max))
-                        print(f"Going to fill with vals {val}")
-                        for mbb_binnum in range(mbb_bins):
-                            val_to_fill = val[mbb_binnum]
-                            val_to_fill = val_to_fill / np.sum(val)
-                            ROOT_hist2d.SetBinContent(mbb_binnum+1, dnn_bin+1, val_to_fill)
-                            ROOT_hist2d.SetBinError(mbb_binnum+1, dnn_bin+1, val_to_fill**(0.5))
-                    ROOT_hist2d.SetStats(0)
-                    ROOT_hist2d.Draw("colz")
-                    ROOT_hist2d.SetTitle(f"2D {label_name} M{para_masspoint}")
-                    ROOT_hist2d.GetXaxis().SetTitle("m_bb reco")
-                    ROOT_hist2d.GetYaxis().SetTitle("DNN Bin (1 == Signal)")
-                    canvas.SaveAs(os.path.join(self.output_folder, model_name, f'2D_parity{parity_index}_{label_name}_M{para_masspoint}.pdf'))
-
-
-
-                    chi2_value_low = ROOT_hist_mbb_SR.Chi2Test(ROOT_hist_mbb_CR_low, option='WW')
-                    chi2_value_high = ROOT_hist_mbb_SR.Chi2Test(ROOT_hist_mbb_CR_high, option='WW')
-
-           
-                    ROOT_hist_mbb_SR.Scale(1.0/ROOT_hist_mbb_SR.Integral())
-                    ROOT_hist_mbb_CR_low.Scale(1.0/ROOT_hist_mbb_CR_low.Integral())
-                    ROOT_hist_mbb_CR_high.Scale(1.0/ROOT_hist_mbb_CR_high.Integral())
-
-                    plotlabel = f"{plotlabel} Chi2_low={chi2_value_low} Chi2_high={chi2_value_high}"
-
-                    plt.hist(pred_mbb_SR+1.0, bins=non_quant_binning+1.0, range=plotrange, density=True, histtype='step', label=plotlabel, alpha=0.5)
-                    plt.hist(pred_mbb_CR_low, bins=non_quant_binning, range=plotrange, density=True, histtype='step', label=plotlabel, alpha=0.5)
-                    plt.hist(pred_mbb_CR_high+2.0, bins=non_quant_binning+2.0, range=plotrange, density=True, histtype='step', label=plotlabel, alpha=0.5)
-
-                    # ROOT_hist_mbb_SR.Draw()
-                    ROOT_hist_mbb_SR.SetTitle(plotlabel)
-                    ROOT_hist_mbb_SR.SetStats(0)
-                    min_val = max(0.0001, min(ROOT_hist_mbb_SR.GetMinimum(), ROOT_hist_mbb_CR_low.GetMinimum(), ROOT_hist_mbb_CR_high.GetMinimum()))
-                    max_val = max(ROOT_hist_mbb_SR.GetMaximum(), ROOT_hist_mbb_CR_low.GetMaximum(), ROOT_hist_mbb_CR_high.GetMaximum())
-                    ROOT_hist_mbb_SR.GetYaxis().SetRangeUser(0.01*min_val, 100*max_val)
-                    ROOT_hist_mbb_CR_low.SetLineColor(ROOT.kRed)
-                    # ROOT_hist_mbb_CR_low.Draw("same")
-                    ROOT_hist_mbb_CR_high.SetLineColor(ROOT.kGreen+2)
-                    # ROOT_hist_mbb_CR_high.Draw("same")
-
-                    ratioplot = ROOT.TRatioPlot(ROOT_hist_mbb_CR_high, ROOT_hist_mbb_SR)
-                    ratioplot.Draw()
-
-                    legend = ROOT.TLegend(0.5, 0.8, 0.9, 0.9)
-                    legend.AddEntry(ROOT_hist_mbb_SR, "m_bb SR")
-                    # legend.AddEntry(ROOT_hist_mbb_CR_low, "m_bb CR Low")
-                    legend.AddEntry(ROOT_hist_mbb_CR_high, "m_bb CR High")
-                    legend.Draw()
-
-
-
-                    print(f"Setting canvas to log scale with range {min_val}, {max_val}")
-                    canvas.SetLogy()
-                    canvas.SaveAs(os.path.join(self.output_folder, model_name, f'blindcheck{parity_index}_{label_name}_M{para_masspoint}.pdf'))
-
-
-
-
-                    # Add plot to the all_SR_plots list
-                    all_SR_plots.append(ROOT_hist_mbb_SR)
-
-
-                all_SR_legend.AddEntry(all_SR_plots[-1], label_name)
-
-
-
-            plt.title(f'DNN Output: PredictSignal M{para_masspoint}')
-            plt.legend(loc='upper right', fontsize="4")
-            plt.yscale('log')
-            plt.savefig(os.path.join(self.output_folder, model_name, f'check{parity_index}_dnn_values_M{para_masspoint}.pdf'))
-            plt.clf()
-            plt.close()
-
-
-            color_list = [ROOT.kRed, ROOT.kBlue, ROOT.kGreen+2]
-            for i, hist in enumerate(all_SR_plots):
-                if i == 0:
-                    hist.SetTitle("All Samples m_bb SignalRegion")
-                    hist.Draw()
-                else:
-                    hist.Draw("same")
-
-                hist.SetLineColor(color_list[i])
-
-            all_SR_legend.Draw()
-            canvas.SaveAs(os.path.join(self.output_folder, model_name, f'all_samples_M{para_masspoint}.pdf'))
-
-
-
-
-
-
-
-
-
-
 
         # We want to make some validation of the Adv output
         os.makedirs(save_path, exist_ok=True)
@@ -690,44 +359,32 @@ class DataWrapper():
         class_weight = self.class_weight
 
 
-        adv_loss_vec = binary_focal_crossentropy(tf.cast(self.mbb_region, dtype=tf.float32), tf.cast(pred[1], dtype=tf.float32), tf.cast(tf.one_hot(self.labels, 2), dtype=tf.float32), tf.cast(pred_class, dtype=tf.float32))[:,0]
+        adv_loss_vec = binary_focal_crossentropy(tf.cast(self.adv_target, dtype=tf.float32), tf.cast(pred[1], dtype=tf.float32), tf.cast(tf.one_hot(self.class_target, 2), dtype=tf.float32), tf.cast(pred_class, dtype=tf.float32))
         adv_loss = round(np.average(adv_loss_vec, weights=adv_weight),3)
-        adv_accuracy_vec = accuracy(tf.cast(self.mbb_region, dtype=tf.float32), tf.cast(pred[1], dtype=tf.float32))[:,0]
+        adv_accuracy_vec = accuracy(tf.cast(self.adv_target, dtype=tf.float32), tf.cast(pred[1], dtype=tf.float32))[:,0]
         adv_accuracy = round(np.average(adv_accuracy_vec, weights=adv_weight),3)
 
-        class_loss_vec = categorical_crossentropy(tf.cast(tf.one_hot(self.labels, 2), dtype=tf.float32), tf.cast(pred_class, dtype=tf.float32))
+        class_loss_vec = categorical_crossentropy(tf.cast(tf.one_hot(self.class_target, 2), dtype=tf.float32), tf.cast(pred_class, dtype=tf.float32))
         print("Class loss vec")
         print(class_loss_vec)
         class_loss = round(np.average(class_loss_vec, weights=class_weight),3)
         print("Class loss")
         print(class_loss)
-        class_accuracy_vec = categorical_accuracy(tf.cast(tf.one_hot(self.labels, 2), dtype=tf.float32), tf.cast(pred_class, dtype=tf.float32))
+        class_accuracy_vec = categorical_accuracy(tf.cast(tf.one_hot(self.class_target, 2), dtype=tf.float32), tf.cast(pred_class, dtype=tf.float32))
         class_accuracy = round(np.average(class_accuracy_vec, weights=class_weight),3)
-
-        print("Having a problem with the data types?")
-        print(f"Random region {tf.expand_dims(tf.cast(self.mbb_region_random, dtype=tf.float32), axis=-1)}")
-        print(f"Prediction {tf.cast(pred[1], dtype=tf.float32)}")
-        print(f"True region {tf.cast(self.mbb_region, dtype=tf.float32)}")
-
-        # adv_loss_random_vec = binary_focal_crossentropy(tf.cast(self.mbb_region_random, dtype=tf.float32), tf.cast(pred[1], dtype=tf.float32), tf.cast(tf.one_hot(self.labels, 2), dtype=tf.float32), tf.cast(pred_class, dtype=tf.float32))[:,0]
-        adv_loss_random_vec = binary_focal_crossentropy(tf.cast(self.mbb_region, dtype=tf.float32), tf.expand_dims(tf.cast(self.mbb_region_random, dtype=tf.float32), axis=-1), tf.cast(tf.one_hot(self.labels, 2), dtype=tf.float32), tf.cast(pred_class, dtype=tf.float32))[:,0]
-        adv_loss_random = round(np.average(adv_loss_random_vec, weights=adv_weight),5)
-
-        mbb_region = self.mbb_region
-
 
 
 
         # Class Plots
         # Lets build Masks
-        Sig_SR_mask = (self.labels == 0) & (self.mbb_region == 0)
-        Sig_CR_high_mask = (self.labels == 0) & (self.mbb_region == 1)
+        Sig_SR_mask = (self.class_target == 0) & (self.adv_target == 0)
+        Sig_CR_high_mask = (self.class_target == 0) & (self.adv_target == 1)
 
-        TT_SR_mask = (self.labels == 1) & (self.mbb_region == 0)
-        TT_CR_high_mask = (self.labels == 1) & (self.mbb_region == 1)
+        TT_SR_mask = (self.class_target == 1) & (self.adv_target == 0)
+        TT_CR_high_mask = (self.class_target == 1) & (self.adv_target == 1)
 
-        DY_SR_mask = (self.labels == 2) & (self.mbb_region == 0)
-        DY_CR_high_mask = (self.labels == 2) & (self.mbb_region == 1)
+        DY_SR_mask = (self.class_target == 2) & (self.adv_target == 0)
+        DY_CR_high_mask = (self.class_target == 2) & (self.adv_target == 1)
 
         # Set class quantiles based on signal
         nQuantBins = 10
@@ -775,7 +432,9 @@ class DataWrapper():
 
 
           class_out_hist_SR, bins = np.histogram(pred_signal[SR_mask], bins=quant_binning_class, range=(0.0, 1.0), weights=class_weight[SR_mask])
+          class_out_hist_SR_w2, bins = np.histogram(pred_signal[SR_mask], bins=quant_binning_class, range=(0.0, 1.0), weights=class_weight[SR_mask]**2)
           class_out_hist_CR_high, bins = np.histogram(pred_signal[CR_high_mask], bins=quant_binning_class, range=(0.0, 1.0), weights=class_weight[CR_high_mask])
+          class_out_hist_CR_high_w2, bins = np.histogram(pred_signal[CR_high_mask], bins=quant_binning_class, range=(0.0, 1.0), weights=class_weight[CR_high_mask]**2)
 
           # Don't use weights for class
           # class_out_hist_SR, bins = np.histogram(pred_signal[SR_mask], bins=quant_binning_class, range=(0.0, 1.0))
@@ -787,10 +446,10 @@ class DataWrapper():
 
           for binnum in range(nQuantBins):
               ROOT_ClassOutput_SR.SetBinContent(binnum+1, class_out_hist_SR[binnum])
-              ROOT_ClassOutput_SR.SetBinError(binnum+1, class_out_hist_SR[binnum]**(0.5))
+              ROOT_ClassOutput_SR.SetBinError(binnum+1, class_out_hist_SR_w2[binnum]**(0.5))
               
               ROOT_ClassOutput_CR_high.SetBinContent(binnum+1, class_out_hist_CR_high[binnum])
-              ROOT_ClassOutput_CR_high.SetBinError(binnum+1, class_out_hist_CR_high[binnum]**(0.5))
+              ROOT_ClassOutput_CR_high.SetBinError(binnum+1, class_out_hist_CR_high_w2[binnum]**(0.5))
               
 
           ROOT_ClassOutput_SR.Scale(1.0/ROOT_ClassOutput_SR.Integral())
@@ -941,7 +600,9 @@ class DataWrapper():
 
 
           adv_out_hist_SR, bins = np.histogram(pred_adv[SR_mask], bins=quant_binning_adv, range=(0.0, 1.0), weights=adv_weight[SR_mask])
+          adv_out_hist_SR_w2, bins = np.histogram(pred_adv[SR_mask], bins=quant_binning_adv, range=(0.0, 1.0), weights=adv_weight[SR_mask]**2)
           adv_out_hist_CR_high, bins = np.histogram(pred_adv[CR_high_mask], bins=quant_binning_adv, range=(0.0, 1.0), weights=adv_weight[CR_high_mask])
+          adv_out_hist_CR_high_w2, bins = np.histogram(pred_adv[CR_high_mask], bins=quant_binning_adv, range=(0.0, 1.0), weights=adv_weight[CR_high_mask]**2)
 
           ROOT_AdvOutput_SR = ROOT.TH1D(f"AdvOutput_{process_name}_SR", f"AdvOutput_{process_name}_SR", nQuantBins, 0.0, 1.0)
           ROOT_AdvOutput_CR_high = ROOT.TH1D(f"AdvOutput_{process_name}_CR_high", f"AdvOutput_{process_name}_CR_high", nQuantBins, 0.0, 1.0)
@@ -949,10 +610,10 @@ class DataWrapper():
 
           for binnum in range(nQuantBins):
               ROOT_AdvOutput_SR.SetBinContent(binnum+1, adv_out_hist_SR[binnum])
-              ROOT_AdvOutput_SR.SetBinError(binnum+1, adv_out_hist_SR[binnum]**(0.5))
+              ROOT_AdvOutput_SR.SetBinError(binnum+1, adv_out_hist_SR_w2[binnum]**(0.5))
               
               ROOT_AdvOutput_CR_high.SetBinContent(binnum+1, adv_out_hist_CR_high[binnum])
-              ROOT_AdvOutput_CR_high.SetBinError(binnum+1, adv_out_hist_CR_high[binnum]**(0.5))
+              ROOT_AdvOutput_CR_high.SetBinError(binnum+1, adv_out_hist_CR_high_w2[binnum]**(0.5))
               
           if ROOT_AdvOutput_SR.Integral() == 0:
             print(f"Process {process_name} has no adv entries, maybe the weights are all 0 for adv?")
@@ -1000,7 +661,6 @@ class DataWrapper():
           pt = ROOT.TPaveText(0.1,0.7,0.4,0.9, "NDC")
           pt.AddText(f"Loss {adv_loss}")
           pt.AddText(f"Accuracy {adv_accuracy}")
-          pt.AddText(f"True Random Loss {adv_loss_random}")
           pt.AddText(f"Chi2 {chi2_value}")
           pt.Draw()
 
@@ -1081,7 +741,6 @@ class DataWrapper():
           pt = ROOT.TPaveText(0.1,0.7,0.4,0.9, "NDC")
           pt.AddText(f"Loss {adv_loss}")
           pt.AddText(f"Accuracy {adv_accuracy}")
-          pt.AddText(f"True Random Loss {adv_loss_random}")
           pt.AddText(f"Chi2 {chi2_value}")
           pt.Draw()
 
@@ -1123,9 +782,10 @@ def binary_focal_crossentropy(target, output, y_class, y_pred_class):
       y_class = y_class[:,0]
       y_pred_class = y_pred_class[:,0]
 
-    y_true = tf.expand_dims(target, axis=-1)
-    y_pred = output
 
+    # Un-nest the output (currently in shape [ [1], [2], [3], ...] and we want in shape [1, 2, 3])
+    y_true = target
+    y_pred = output[:,0]
 
     bce = binary_entropy(y_true, y_pred)
     return bce
@@ -1218,19 +878,39 @@ def categorical_accuracy(target, output):
     return matches
 
 
+def ks_test(x, y):
+    # x and y are nested, unnest them
+    x_sorted = tf.sort(x[:,0])
+    y_sorted = tf.sort(y[:,0])
+    combined = tf.concat([x[:,0], y[:,0]], axis=0)
+    sorted_combined = tf.sort(combined)
+
+    n_x = tf.shape(x)[0]
+    n_y = tf.shape(y)[0]
+
+    cdf_x = tf.cast(tf.searchsorted(x_sorted, sorted_combined, side='right'), tf.float32) / tf.cast(n_x, tf.float32)
+    cdf_y = tf.cast(tf.searchsorted(y_sorted, sorted_combined, side='right'), tf.float32) / tf.cast(n_y, tf.float32)
+
+    delta = tf.abs(cdf_x - cdf_y)
+    return tf.reduce_max(delta)
+
+
+
+
+
 
 class EpochCounterCallback(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         self.model.epoch_counter.assign_add(1)
 
-
-
 class AdvOnlyCallback(tf.keras.callbacks.Callback):
-  def __init__(self, train_dataset, nSteps=100, TrackerWindowSize=10):
+  def __init__(self, train_dataset, nSteps=100, TrackerWindowSize=10, on_batch=True, on_epoch=False):
     self.train_dataset = train_dataset.repeat()
     self.trackerWindowSize = TrackerWindowSize
     self.nSteps = nSteps
     self.generator = self.looper()
+    self.on_batch = on_batch
+    self.on_epoch = on_epoch
 
   def looper(self):
     yield
@@ -1251,8 +931,14 @@ class AdvOnlyCallback(tf.keras.callbacks.Callback):
 
   def on_batch_end(self, batch, logs=None):
     if self.model.epoch_counter == 0: return
-    next(self.generator)
+    if self.on_batch:
+      next(self.generator)
     
+
+  def on_epoch_end(self, epoch, logs=None):
+    if self.model.epoch_counter == 0: return
+    if self.on_epoch:
+       next(self.generator)
 
 
 
@@ -1396,6 +1082,8 @@ class AdversarialModel(tf.keras.Model):
     self.class_loss_tracker = tf.keras.metrics.Mean(name="class_loss")
     self.class_accuracy_tracker = tf.keras.metrics.Mean(name="class_accuracy")
 
+    self.new_loss_tracker = tf.keras.metrics.Mean(name="new_loss")
+
 
     self.adv_grad_factor = setup['adv_grad_factor']
 
@@ -1426,18 +1114,14 @@ class AdversarialModel(tf.keras.Model):
         layer_list.append(batch_norm)
 
     for n in range(setup['n_common_layers']):
-      add_layer(self.common_layers, setup['n_common_units'], setup['activation'], f'common_{n}')
+      add_layer(self.common_layers, setup['n_common_units'], setup['common_activation'], f'common_{n}')
 
     self.class_layers = []
     self.adv_layers = []
+    for n in range(setup['n_class_layers']):
+      add_layer(self.class_layers, setup['n_class_units'], setup['class_activation'], f'class_{n}')
     for n in range(setup['n_adv_layers']):
-      add_layer(self.class_layers, setup['n_adv_units'], setup['activation'], f'class_{n}')
-      # add_layer(self.adv_layers, setup['n_adv_units'], setup['activation'], f'adv_{n}')
-      add_layer(self.adv_layers, setup['n_adv_units'], 'relu', f'adv_{n}')
-
-    add_layer(self.adv_layers, setup['n_adv_units'], 'relu', f'adv_{n+1}')
-    add_layer(self.adv_layers, setup['n_adv_units'], 'relu', f'adv_{n+2}')
-    add_layer(self.adv_layers, setup['n_adv_units'], 'relu', f'adv_{n+3}')
+      add_layer(self.adv_layers, setup['n_adv_units'], setup['adv_activation'], f'adv_{n}')
 
 
     self.class_output = tf.keras.layers.Dense(2, activation='softmax', name='class_output')
@@ -1494,6 +1178,18 @@ class AdversarialModel(tf.keras.Model):
       # This is to have the SignalRegion and ControlRegion have equal weights
 
       adv_loss = tf.reduce_mean(adv_loss_vec * adv_weight)
+
+
+      # Experimental ks test loss
+      # Combine both class and adv loss into one 'loss' and put into only one optimizer
+      # new_loss = class_lost + k * ks_test
+
+      # y_adv_SR_mask = (y_adv == 0) & (adv_weight != 0)
+      # y_adv_CR_mask = (y_adv == 1) & (adv_weight != 0)
+      # k = 0.0
+
+      # new_loss = class_loss + k * ks_test(y_pred_class[y_adv_SR_mask], y_pred_class[y_adv_CR_mask])
+
       return y_pred_class, class_loss_vec, class_loss, y_pred_adv, adv_loss_vec, adv_loss
 
     if training:
@@ -1506,7 +1202,6 @@ class AdversarialModel(tf.keras.Model):
 
     self.class_loss_tracker.update_state(class_loss_vec, sample_weight=class_weight)
     self.class_accuracy_tracker.update_state(class_accuracy_vec, sample_weight=class_weight)
-
 
     adv_accuracy_vec = self.adv_accuracy(y_adv, y_pred_adv)
 
@@ -1639,6 +1334,8 @@ class AdversarialModel(tf.keras.Model):
           self.class_loss_tracker,
           self.class_accuracy_tracker,
 
+          self.new_loss_tracker,
+
           self.adv_loss_tracker,
           self.adv_accuracy_tracker,
     ]
@@ -1677,7 +1374,7 @@ def train_dnn():
         input_weight_name_val = os.path.join(input_folder, f"weight{val_config_dict['meta_data']['input_filename'][5:]}")
 
 
-        output_folder = "DNN_Models/v17"
+        output_folder = "DNN_Models/v22"
         model_name = config_dict['meta_data']['output_DNNname']
         output_dnn_name = os.path.join(output_folder, model_name)
 
@@ -1708,9 +1405,10 @@ def train_dnn():
         dw.SetParamList([ 250, 260, 270, 280, 300, 350, 450, 550, 600, 650, 700, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2500, 3000, 4000, 5000 ])
         dw.SetOutputFolder(output_folder)
 
-        dw.AddInputLabel('sample_type')
+        # dw.AddInputLabel('sample_type')
 
         dw.SetMbbName('bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino')
+        # dw.SetMbbRegionName('adv_target')
 
         # Prep a test dw
         # Must copy before reading file so we can read the test file instead
@@ -1719,12 +1417,12 @@ def train_dnn():
         dw.ReadFile(input_file_name)
         dw.ReadWeightFile(input_weight_name)
         print(config_dict)
-        dw.DefineTrainTestSet(batch_size, 0.0)
+        # dw.DefineTrainTestSet(batch_size, 0.0)
 
 
         dw_val.ReadFile(input_file_name_val)
         dw_val.ReadWeightFile(input_weight_name_val)
-        dw_val.DefineTrainTestSet(val_batch_size, 0.0)
+        # dw_val.DefineTrainTestSet(val_batch_size, 0.0)
 
 
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
@@ -1734,12 +1432,11 @@ def train_dnn():
 
         setup = {
             'learning_rate': 0.0001,
-            'adv_learning_rate': 0.0001,
-            'weight_decay': 0.004,
+            'adv_learning_rate': 0.00001,
+            'weight_decay': 0.04,
             'adv_weight_decay': 0.004,
             'adv_grad_factor': 1.0, #0.7
-            'class_grad_factor': 0.0001,
-            'activation': 'tanh', #'relu' # This one will be deleted
+            'class_grad_factor': 0.01,
             'common_activation': 'tanh', #'relu'
             'class_activation': 'tanh', #'relu'
             'adv_activation': 'relu', #'relu'
@@ -1747,7 +1444,9 @@ def train_dnn():
             'dropout': 0.0,
             'n_common_layers': 10,
             'n_common_units': 256,
-            'n_adv_layers': 3,
+            'n_class_layers': 3,
+            'n_class_units': 128,
+            'n_adv_layers': 6,
             'n_adv_units': 128,
             'n_epochs': 20,
             'patience': 100,
@@ -1760,34 +1459,33 @@ def train_dnn():
                     # optimizer=tf.keras.optimizers.AdamW(learning_rate=setup['learning_rate'],
                     #                                     weight_decay=setup['weight_decay']))
                     optimizer=tf.keras.optimizers.Nadam(learning_rate=setup['learning_rate'],
-                                                        # weight_decay=setup['weight_decay']))
+                                                        weight_decay=setup['weight_decay']
                     )
         )
 
 
-        model(dw.train_features)
+        model(dw.features)
 
         model.summary()
 
+        train_tf_dataset = tf.data.Dataset.from_tensor_slices((dw.features, (tf.one_hot(dw.class_target, 2), dw.adv_target, dw.class_weight, dw.adv_weight))).batch(batch_size)
 
-
-        train_tf_dataset = tf.data.Dataset.from_tensor_slices((dw.train_features, (tf.one_hot(dw.train_labels_binary, 2), dw.train_mbb, dw.train_class_weight, dw.train_adv_weight))).batch(batch_size)
-
-        val_tf_dataset = tf.data.Dataset.from_tensor_slices((dw_val.train_features, (tf.one_hot(dw_val.train_labels_binary, 2), dw_val.train_mbb, dw_val.train_class_weight, dw_val.train_adv_weight))).batch(val_batch_size)
+        val_tf_dataset = tf.data.Dataset.from_tensor_slices((dw_val.features, (tf.one_hot(dw_val.class_target, 2), dw_val.adv_target, dw_val.class_weight, dw_val.adv_weight))).batch(val_batch_size)
 
 
         def save_predicate(model, logs):
             return abs(logs['val_adv_accuracy'] - 0.5) < 0.001
 
 
-        input_shape = [None, dw.train_features.shape[1]]
+        input_shape = [None, dw.features.shape[1]]
         input_signature = [tf.TensorSpec(input_shape, tf.double, name='x')]
         callbacks = [
             ModelCheckpoint(output_dnn_name, verbose=1, monitor="val_class_loss", mode='min', min_rel_delta=1e-3,
                             patience=setup['patience'], save_callback=None, predicate=save_predicate, input_signature=input_signature),
             tf.keras.callbacks.CSVLogger(f'{output_dnn_name}_training_log.csv', append=True),
             EpochCounterCallback(),
-            AdvOnlyCallback(train_tf_dataset, nSteps=10, TrackerWindowSize=10),
+            # AdvOnlyCallback(train_tf_dataset, nSteps=2, TrackerWindowSize=2, on_batch=True, on_epoch=False),
+            # AdvOnlyCallback(train_tf_dataset, nSteps=500, TrackerWindowSize=100, on_batch=False, on_epoch=True),
         ]
 
 
@@ -1808,28 +1506,6 @@ def train_dnn():
             yaml.dump(features_config, file)
 
 
-
-        # print("Fit model")
-        # history = model.fit(
-        #     dw.train_features,
-        #     # (dw.train_labels, dw.train_mbb),
-        #     (tf.one_hot(dw.train_labels_binary, 2), dw.train_mbb, dw.train_class_weight, dw.train_adv_weight),
-        #     validation_data=(
-        #         dw_val.train_features,
-        #         # (dw.test_labels, dw.test_mbb)
-        #         # (tf.one_hot(dw.test_labels_binary, 2), dw.test_mbb, dw.test_class_weight, dw.test_adv_weight)
-        #         (tf.one_hot(dw_val.train_labels_binary, 2), dw_val.train_mbb, dw_val.train_class_weight, dw_val.train_adv_weight)
-        #     ),
-        #     verbose=1,
-        #     batch_size=batch_size,
-        #     epochs=setup['n_epochs'],
-        #     shuffle=False,
-        #     callbacks=callbacks,
-        #     validation_batch_size=val_batch_size,
-        # )
-        
-
-
         print("Fit model")
         history = model.fit(
             train_tf_dataset,
@@ -1841,15 +1517,12 @@ def train_dnn():
         )
 
 
-
         model.save(f"{output_dnn_name}.keras")
 
-        input_shape = [None, dw.train_features.shape[1]]
+        input_shape = [None, dw.features.shape[1]]
         input_signature = [tf.TensorSpec(input_shape, tf.double, name='x')]
         onnx_model, _ = tf2onnx.convert.from_keras(model, input_signature, opset=13)
         onnx.save(onnx_model, f"{output_dnn_name}.onnx")
-
-
 
 
         return
@@ -1890,25 +1563,22 @@ def adv_only_training(model_name, model_config, train_file, train_weight, test_f
   dw.UseParametric(False)
   dw.SetParamList(parametric_list)
 
-  dw.AddInputLabel('sample_type')
-
   dw.SetMbbName('bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino')
-
 
   dw_val = copy.deepcopy(dw)
 
   dw.ReadFile(train_file)
   dw.ReadWeightFile(train_weight)
-  dw.DefineTrainTestSet(batch_size, 0.0)
+  # dw.DefineTrainTestSet(batch_size, 0.0)
 
   dw_val.ReadFile(test_file)
   dw_val.ReadWeightFile(test_weight)
-  dw_val.DefineTrainTestSet(batch_size, 0.0)
+  # dw_val.DefineTrainTestSet(batch_size, 0.0)
 
 
   setup2 = dnnConfig['model_setup']
   setup2['apply_common_gradients'] = False
-  setup2['adv_learning_rate'] = 0.01
+  setup2['adv_learning_rate'] = 0.00001
 
   model2 = AdversarialModel(setup2)
   model2.compile(loss=None,
@@ -1916,7 +1586,7 @@ def adv_only_training(model_name, model_config, train_file, train_weight, test_f
                                                   # weight_decay=setup2['weight_decay']))
               ))
 
-  model2(dw.train_features)
+  model2(dw.features)
 
   model2.summary()
 
@@ -1946,56 +1616,32 @@ def adv_only_training(model_name, model_config, train_file, train_weight, test_f
   #   print(f"On layer {i} name {layer.name}")
   #   print(layer.get_config(), layer.get_weights())
 
+  train_tf_dataset = tf.data.Dataset.from_tensor_slices((dw.features, (tf.one_hot(dw.class_target, 2), dw.adv_target, dw.class_weight, dw.adv_weight))).batch(batch_size)
+
+  val_tf_dataset = tf.data.Dataset.from_tensor_slices((dw_val.features, (tf.one_hot(dw_val.class_target, 2), dw_val.adv_target, dw_val.class_weight, dw_val.adv_weight))).batch(batch_size)
 
 
   print("And continue training")
   history2 = model2.fit(
-      dw.train_features,
-      # (dw.train_labels, dw.train_mbb),
-      (tf.one_hot(dw.train_labels_binary, 2), dw.train_mbb, dw.train_class_weight, dw.train_adv_weight),
-      validation_data=(
-          dw_val.train_features,
-          # (dw.test_labels, dw.test_mbb)
-          # (tf.one_hot(dw.test_labels_binary, 2), dw.test_mbb, dw.test_class_weight, dw.test_adv_weight)
-          (tf.one_hot(dw_val.train_labels_binary, 2), dw_val.train_mbb, dw_val.train_class_weight, dw_val.train_adv_weight)
-      ),
+      train_tf_dataset,
+      validation_data=val_tf_dataset,
       verbose=1,
-      batch_size=batch_size,
       epochs=setup2['n_epochs'],
       shuffle=False,
-      validation_batch_size=batch_size,
   )
 
 
+  output_dnn_name = f"{model_name.split('.')[0]}_step2"
+
+  model2.save(f"{output_dnn_name}.keras")
+
+  input_shape = [None, dw.features.shape[1]]
+  input_signature = [tf.TensorSpec(input_shape, tf.double, name='x')]
+  onnx_model, _ = tf2onnx.convert.from_keras(model2, input_signature, opset=13)
+  onnx.save(onnx_model, f"{output_dnn_name}.onnx")
+
+
   return
-
-
-  # PlotMetric(history, model_name, "class_loss", output_folder)
-  # PlotMetric(history, model_name, "adv_loss", output_folder)
-
-
-
-  # # But model is what was the last epoch, not necessarily the best model (if early stopping triggered with patience)
-  # # Need to load the best model file
-
-  # model_load_name = os.path.join(output_dnn_name, 'best')
-  # print(f"Model load {model_load_name}")
-  # sess = ort.InferenceSession(model_load_name)
-
-  # print(f"Type sess {type(sess)}")
-  # print(f"Type model {type(model)}")
-  # validate = True
-  # if validate:
-  #     # Cool! In the debugging stage, now lets also predict the output on batch1 file!
-  #     other_parity_files = [os.path.join(input_folder, fname) for fname in os.listdir(input_folder) if fname.startswith('batchfile') and (fname != config_dict['meta_data']['input_filename'])]
-  #     for i, other_parity_file in enumerate(other_parity_files):
-  #         dw.ReadFile(other_parity_file)
-
-  #         # dw.validate_output(model, model_name, i)
-  #         dw.validate_output(sess, model_name, i)
-  #         break # For now, don't validate on each nParity 
-
-  # return # And just end training after first model
 
 
 
@@ -2056,18 +1702,19 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    # model = train_dnn()
+    model = train_dnn()
 
-    model_name = f"DNN_Models/v17/ResHH_Classifier_parity0/epoch_20.keras"
-    model_config = "DNN_Models/v17/dnn_config.yaml"
+    model_name = f"DNN_Models/v22/ResHH_Classifier_parity0/epoch_18.keras"
+    model_config = "DNN_Models/v22/dnn_config.yaml"
     train_file = f"DNN_Datasets/Dataset_2025-03-28-12-49-16/batchfile0.root"
     train_weight = f"DNN_Datasets/Dataset_2025-03-28-12-49-16/weightfile0.root"
     test_file = f"DNN_Datasets/Dataset_2025-03-28-12-49-16/batchfile1.root"
     test_weight = f"DNN_Datasets/Dataset_2025-03-28-12-49-16/weightfile1.root"
-    adv_only_training(model_name, model_config, train_file, train_weight, test_file, test_weight)
+    # adv_only_training(model_name, model_config, train_file, train_weight, test_file, test_weight)
 
-    model_name = f"DNN_Models/v17/ResHH_Classifier_parity0/epoch_20.onnx"
-    validate_model(model_name, model_config, test_file, test_weight, 1)
+    # model_name = f"DNN_Models/v22/ResHH_Classifier_parity0/epoch_20_step2.onnx"
+    model_name = f"DNN_Models/v22/ResHH_Classifier_parity0/epoch_18.onnx"
+    # validate_model(model_name, model_config, test_file, test_weight, 1)
 
 
     # for i in range(4):
