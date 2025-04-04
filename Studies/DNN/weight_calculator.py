@@ -1,8 +1,8 @@
 import uproot
 import numpy as np
 
-fname = "/afs/cern.ch/work/d/daebi/diHiggs/HH_bbWW/Studies/DNN/DNN_dataset_2025-03-19-13-41-00/batchfile{nParity}.root"
-outname = "/afs/cern.ch/work/d/daebi/diHiggs/HH_bbWW/Studies/DNN/DNN_dataset_2025-03-19-13-41-00/weightfile{nParity}.root"
+fname = "/afs/cern.ch/work/d/daebi/diHiggs/HH_bbWW/Studies/DNN/DNN_Datasets/Dataset_2025-03-28-12-49-16/batchfile{nParity}.root"
+outname = "/afs/cern.ch/work/d/daebi/diHiggs/HH_bbWW/Studies/DNN/DNN_Datasets/Dataset_2025-03-28-12-49-16/weightfile{nParity}.root"
 
 
 for nParity in range(4):
@@ -22,8 +22,10 @@ for nParity in range(4):
 
     hadronFlavour = branches["centralJet_hadronFlavour"]
 
-    type_to_name = {'1': 'Signal', '8': 'TT', '5': 'DY'}
+    type_to_name = {'1': 'Signal', '2': 'Signal', '8': 'TT', '5': 'DY'} #1 is Radion, 2 is Graviton
+    type_to_target = {'1': 0, '2': 0, '8': 1, '5': 2}
     sample_name = np.array([type_to_name[str(sample)] for sample in sample_type])
+    class_targets = np.array([type_to_target[str(sample)] for sample in sample_type])
 
     # Initialize the two branches, class weight and adv weight
     # Starting from their genWeight (includes XS and such)
@@ -86,6 +88,34 @@ for nParity in range(4):
     )
     bb_low = 70
     bb_high = 150
+
+    # Set adv targets
+    adv_targets = np.where(
+        bb_mass < bb_low,
+        -1,
+        np.where(
+            bb_mass < bb_high,
+            0,
+            1
+        )
+    )
+
+    #Option to set an lower and upper 
+    bb_min = 70
+    bb_max = 300
+    adv_weight = np.where(
+        bb_mass > bb_min,
+        adv_weight,
+        0.0
+    )
+    adv_weight = np.where(
+        bb_mass < bb_max,
+        adv_weight,
+        0.0
+    )
+
+
+
     for this_name in np.unique(sample_name):
         if this_name == 'Signal': continue
         print(f"On sample {this_name}")
@@ -148,6 +178,9 @@ for nParity in range(4):
     out_dict = {
         "class_weight": class_weight,
         "adv_weight": adv_weight,
+        "class_target": class_targets,
+        "adv_target": adv_targets,
     }
 
     out_file["weight_tree"] = out_dict
+

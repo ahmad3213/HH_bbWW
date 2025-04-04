@@ -129,8 +129,8 @@ def create_file(config_dict, output_folder, out_filename):
 
     print("Finished create file loop, now we must add the DNN variables")
     # Increment the name indexes before I embarass myself again
-    tmp_filename = f'tmp{step_idx}.root'
-    tmpnext_filename = f'tmp{step_idx+1}.root'
+    tmp_filename = os.path.join(output_folder, f'tmp{step_idx}.root')
+    tmpnext_filename = os.path.join(output_folder, f'tmp{step_idx+1}.root')
 
     df_out = ROOT.RDataFrame('Events', tmp_filename)
 

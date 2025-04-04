@@ -85,6 +85,7 @@ def create_dict(config_dict, output_folder):
         for signal_name in tqdm(config_dict['signal']):
             signal_dict = config_dict['signal'][signal_name]
             class_value = signal_dict['class_value']
+            spin_value = signal_dict['spin']
             mass_points = signal_dict['mass_points']
             dataset_name_format = signal_dict['dataset_name_format']
             use_combined = signal_dict['use_combined']
@@ -103,7 +104,7 @@ def create_dict(config_dict, output_folder):
                     'batch_size': 0,
                     'batch_start': 0,
                     'class_value': class_value,
-                    'spin': 0,
+                    'spin': spin_value,
                     'mass': -1,
                     'all_extensions': [],
                     'storage_folder': os.path.join(os.getcwd(), output_folder)
@@ -131,7 +132,7 @@ def create_dict(config_dict, output_folder):
                     'batch_size': 0,
                     'batch_start': 0,
                     'class_value': class_value,
-                    'spin': 0,
+                    'spin': spin_value,
                     'mass': mass_point,
                     'all_extensions': [],
                     'storage_folder': storage_folder,
