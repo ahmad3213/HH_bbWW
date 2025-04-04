@@ -15,6 +15,7 @@ import tf2onnx
 import onnx
 import onnxruntime as ort
 import shutil
+import copy
 
 
 
@@ -35,10 +36,10 @@ def PlotMetric(history, model, metric, output_folder):
 class DataWrapper():
     def __init__(self):
         print("Init data wrapper")
-        self.value_to_label = {'1': 0, '8': 1, '5': 2}
+        self.value_to_label = {'1': 0, '2': 0, '8': 1, '5': 2}
         self.label_names = ["Signal", "TT", "DY"]
 
-        self.value_to_label_binary = {'1': 0, '8': 1, '5': 1} # Binary for now
+        self.value_to_label_binary = {'1': 0, '2': 0, '8': 1, '5': 1} # Binary for now
 
         self.binary = False
 
@@ -58,13 +59,10 @@ class DataWrapper():
         self.mbb = None
         self.mbb_region = None
         self.mbb_region_binary = None
-        self.mbb_CR_weight = None
-        self.mbb_SR_weight = None
+        self.mbb_region_random = None
 
         self.class_weight = None
         self.adv_weight = None
-
-        self.class_weights_lut = None
 
         self.train_features = None
         self.train_labels = None
@@ -147,7 +145,7 @@ class DataWrapper():
             print("What are you doing? You already defined the mbb branch")
         self.mbb_name = mbb_name
         
-    def ReadFile(self, file_name):
+    def ReadFile(self, file_name, entry_start=None, entry_stop=None):
         if self.feature_names == None:
             print("Uknown branches to read! DefineInputFeatures first!")
             return
@@ -155,9 +153,23 @@ class DataWrapper():
             print("No label branch defined!")
             return
 
+        print(f"Reading file {file_name}")
+
+        features_to_load = []
+        features_to_load = features_to_load + self.feature_names
+        for listfeature in self.listfeature_names:
+           if listfeature[0] not in features_to_load: features_to_load.append(listfeature[0])
+        features_to_load = features_to_load + self.highlevelfeatures_names
+
+        features_to_load.append(self.mbb_name)
+        features_to_load.append(self.label_name)
+        features_to_load.append('X_mass')
+
+        print(f"Only loading these features {features_to_load}")
+
         file = uproot.open(file_name)
         tree = file['Events']
-        branches = tree.arrays()
+        branches = tree.arrays(features_to_load, entry_start=entry_start, entry_stop=entry_stop)
 
         self.features = np.array([getattr(branches, feature_name) for feature_name in self.feature_names]).transpose()
         print("Got features, but its a np array")
@@ -170,9 +182,7 @@ class DataWrapper():
         #Need to append the value features and the listfeatures together
         if self.listfeature_names != None: 
             print("We have list features!")
-            print(self.features)
             self.features = np.append(self.features, self.listfeatures, axis=1)
-            print(self.features)
 
         if self.highlevelfeatures_names != None: 
             self.hlv = np.array([getattr(branches, feature_name) for feature_name in self.highlevelfeatures_names]).transpose()
@@ -185,19 +195,9 @@ class DataWrapper():
         self.labels_binary = np.array([self.value_to_label_binary[str(branch_val)] for branch_val in labels_branch_values])
         print("Got labels")
 
-        # self.mbb_region, self.mbb_CR_weight, self.mbb_SR_weight = self.SetMbbRegion(branches)
-        # print(f"Old CR weight {self.mbb_CR_weight} SR weight {self.mbb_SR_weight}")
-        self.mbb, self.mbb_region, self.mbb_region_binary, self.mbb_CR_weight, self.mbb_SR_weight = self.SetMbbRegion(branches)
-        # print(f"New CR weight {self.mbb_CR_weight} SR weight {self.mbb_SR_weight}")
 
-        self.class_weights_lut = self.SetClassWeights()
-
-        # self.mbb_CR_weight = np.sum(self.mbb_region == 0)/len(self.mbb_region)
-        # self.mbb_SR_weight = np.sum(self.mbb_region == 1)/len(self.mbb_region) # Calculate ratio of signal to control
-        print(len(self.mbb_region))
-        print(f"Calculated the mbb_CR_weight {self.mbb_CR_weight} giving total weight {self.mbb_CR_weight * np.sum((self.mbb_region != 0) & (self.labels != 0))}")
-        print(f"Calculated the mbb_SR_weight {self.mbb_SR_weight} giving total weight {self.mbb_SR_weight * np.sum((self.mbb_region == 0) & (self.labels != 0))}")
-
+        self.mbb, self.mbb_region, self.mbb_region_binary, self.mbb_region_random = self.SetMbbRegion(branches)
+        print("Set mbb regions")
 
         #Add parametric variable
         self.param_values = np.array([[x if (x > 0) else np.random.choice(self.param_list) for x in getattr(branches, 'X_mass') ]]).transpose()
@@ -208,27 +208,13 @@ class DataWrapper():
         if self.use_parametric: self.features = np.append(self.features, self.param_values, axis=1)
 
 
-    def ReadWeightFile(self, weight_name):
+    def ReadWeightFile(self, weight_name, entry_start=None, entry_stop=None):
+        print(f"Reading weight file {weight_name}")
         file = uproot.open(weight_name)
         tree = file['weight_tree']
-        branches = tree.arrays()
+        branches = tree.arrays(entry_start=entry_start, entry_stop=entry_stop)
         self.class_weight = np.array(getattr(branches, 'class_weight'))
         self.adv_weight = np.array(getattr(branches, 'adv_weight'))
-
-    def SetMbbRegion_old(self, branches):
-        print("Inside setting mbb region!")
-        # But we want to blind the adversarial part to Signal events, meaning we must filter them out
-        mbb = np.array(getattr(branches, self.mbb_name))
-        mbb_region = np.array(abs(mbb - 125) < 25)
-        nTotal = np.sum(self.labels != 0)
-        print(f"We have {nTotal} background events")
-
-        mbb_CR_weight = tf.cast(nTotal / (np.sum((mbb_region == 0) & (self.labels != 0)) * 2.0), tf.float32)
-        mbb_SR_weight = tf.cast(nTotal / (np.sum((mbb_region == 1) & (self.labels != 0)) * 2.0), tf.float32)
-
-        print(f"Pointing to {np.sum((mbb_region == 0) & (self.labels != 0))} CR events and {np.sum((mbb_region == 1) & (self.labels != 0))} SR events")
-
-        return mbb_region, mbb_region_binary, mbb_CR_weight, mbb_SR_weight
 
     def SetMbbRegion(self, branches):
         print("Inside setting mbb region!")
@@ -244,13 +230,6 @@ class DataWrapper():
             1
           )
         )
-        nTotal = np.sum(self.labels != 0)
-        print(f"We have {nTotal} background events")
-
-        mbb_CR_weight = tf.cast(nTotal / (np.sum(((mbb_region == -1) | (mbb_region == 1)) & (self.labels != 0)) * 2.0), tf.float32)
-        mbb_SR_weight = tf.cast(nTotal / (np.sum((mbb_region == 0) & (self.labels != 0)) * 2.0), tf.float32)
-
-        print(f"Pointing to {np.sum((mbb_region == 0) & (self.labels != 0))} CR events and {np.sum((mbb_region == 1) & (self.labels != 0))} SR events")
 
         mbb_region_binary = np.where(
           (mbb_region == 0),
@@ -258,7 +237,9 @@ class DataWrapper():
           0
         )
 
-        return mbb, mbb_region, mbb_region_binary, mbb_CR_weight, mbb_SR_weight
+        mbb_region_random = np.random.choice(2, len(mbb))
+
+        return mbb, mbb_region, mbb_region_binary, mbb_region_random
 
 
 
@@ -303,6 +284,7 @@ class DataWrapper():
         self.train_labels = self.labels[trainStart:trainEnd]
         self.train_labels_binary = self.labels_binary[trainStart:trainEnd]
         self.train_mbb = self.mbb_region_binary[trainStart:trainEnd]
+        self.train_mbb_random = self.mbb_region_random[trainStart:trainEnd]
         self.train_class_weight = self.class_weight[trainStart:trainEnd]
         self.train_adv_weight = self.adv_weight[trainStart:trainEnd]
         
@@ -310,6 +292,7 @@ class DataWrapper():
         self.test_labels = self.labels[testStart:testEnd]
         self.test_labels_binary = self.labels_binary[testStart:testEnd]
         self.test_mbb = self.mbb_region_binary[testStart:testEnd]
+        self.test_mbb_random = self.mbb_region_random[testStart:testEnd]
         self.test_class_weight = self.class_weight[testStart:testEnd]
         self.test_adv_weight = self.adv_weight[testStart:testEnd]
 
@@ -377,14 +360,15 @@ class DataWrapper():
         #For now, lets create a parametric_masspoints list and apply with those masses
         #Theory is that these masses will work very well for signal at that mass, but still remove backgrounds
 
-        os.makedirs(os.path.join(self.output_folder, model_name), exist_ok=True)
+        save_path = os.path.join(self.output_folder, model_name.split('.')[0])
+        os.makedirs(save_path, exist_ok=True)
 
         for para_masspoint in self.param_list:
+            continue
             print(f"Looking at mass {para_masspoint}")
             if para_masspoint > 1000: continue
             if para_masspoint not in [300, 450, 550, 800]: continue
-            predict_list = []
-            weight_list = []
+
 
 
             nBinsForChi2 = 10 # We must set up our quant binning object first so it exists across the loops
@@ -407,6 +391,9 @@ class DataWrapper():
 
                 this_sample_mask = labels == i
 
+                # Check that there are any events with this label
+                if len(self.features_paramSet[this_sample_mask]) == 0: continue
+
                 features_this_sample = self.features_paramSet[this_sample_mask]
                 features_this_sample_no_parametric = self.features_no_param[this_sample_mask]
                 mbb_region_this_sample = self.mbb_region[this_sample_mask]
@@ -416,7 +403,8 @@ class DataWrapper():
 
                 pred = sess.run(None, {'x': features_to_use})
                 pred = pred[0][:,0] #Only get first entry (category prediction), all events, then first category (signal)
-
+                print("pred")
+                print(pred)
 
                 mbbSR = mbb_region_this_sample == 0
                 mbbCR_low = mbb_region_this_sample == -1
@@ -628,7 +616,6 @@ class DataWrapper():
                     # ROOT_hist_mbb_CR_high.Draw("same")
 
                     ratioplot = ROOT.TRatioPlot(ROOT_hist_mbb_CR_high, ROOT_hist_mbb_SR)
-                    ratioplot.SetStats(0)
                     ratioplot.Draw()
 
                     legend = ROOT.TLegend(0.5, 0.8, 0.9, 0.9)
@@ -684,6 +671,442 @@ class DataWrapper():
 
 
 
+
+        # We want to make some validation of the Adv output
+        os.makedirs(save_path, exist_ok=True)
+
+        para_masspoint = 300
+        if self.use_parametric: self.SetPredictParamValue(para_masspoint)
+        features = self.features_paramSet if self.use_parametric else self.features_no_param
+
+        pred = sess.run(None, {'x': features})
+        pred_class = pred[0]
+        pred_signal = pred_class[:,0]
+        pred_adv = pred[1][:,0]
+
+
+
+        adv_weight = self.adv_weight
+        class_weight = self.class_weight
+
+
+        adv_loss_vec = binary_focal_crossentropy(tf.cast(self.mbb_region, dtype=tf.float32), tf.cast(pred[1], dtype=tf.float32), tf.cast(tf.one_hot(self.labels, 2), dtype=tf.float32), tf.cast(pred_class, dtype=tf.float32))[:,0]
+        adv_loss = round(np.average(adv_loss_vec, weights=adv_weight),3)
+        adv_accuracy_vec = accuracy(tf.cast(self.mbb_region, dtype=tf.float32), tf.cast(pred[1], dtype=tf.float32))[:,0]
+        adv_accuracy = round(np.average(adv_accuracy_vec, weights=adv_weight),3)
+
+        class_loss_vec = categorical_crossentropy(tf.cast(tf.one_hot(self.labels, 2), dtype=tf.float32), tf.cast(pred_class, dtype=tf.float32))
+        print("Class loss vec")
+        print(class_loss_vec)
+        class_loss = round(np.average(class_loss_vec, weights=class_weight),3)
+        print("Class loss")
+        print(class_loss)
+        class_accuracy_vec = categorical_accuracy(tf.cast(tf.one_hot(self.labels, 2), dtype=tf.float32), tf.cast(pred_class, dtype=tf.float32))
+        class_accuracy = round(np.average(class_accuracy_vec, weights=class_weight),3)
+
+        print("Having a problem with the data types?")
+        print(f"Random region {tf.expand_dims(tf.cast(self.mbb_region_random, dtype=tf.float32), axis=-1)}")
+        print(f"Prediction {tf.cast(pred[1], dtype=tf.float32)}")
+        print(f"True region {tf.cast(self.mbb_region, dtype=tf.float32)}")
+
+        # adv_loss_random_vec = binary_focal_crossentropy(tf.cast(self.mbb_region_random, dtype=tf.float32), tf.cast(pred[1], dtype=tf.float32), tf.cast(tf.one_hot(self.labels, 2), dtype=tf.float32), tf.cast(pred_class, dtype=tf.float32))[:,0]
+        adv_loss_random_vec = binary_focal_crossentropy(tf.cast(self.mbb_region, dtype=tf.float32), tf.expand_dims(tf.cast(self.mbb_region_random, dtype=tf.float32), axis=-1), tf.cast(tf.one_hot(self.labels, 2), dtype=tf.float32), tf.cast(pred_class, dtype=tf.float32))[:,0]
+        adv_loss_random = round(np.average(adv_loss_random_vec, weights=adv_weight),5)
+
+        mbb_region = self.mbb_region
+
+
+
+
+        # Class Plots
+        # Lets build Masks
+        Sig_SR_mask = (self.labels == 0) & (self.mbb_region == 0)
+        Sig_CR_high_mask = (self.labels == 0) & (self.mbb_region == 1)
+
+        TT_SR_mask = (self.labels == 1) & (self.mbb_region == 0)
+        TT_CR_high_mask = (self.labels == 1) & (self.mbb_region == 1)
+
+        DY_SR_mask = (self.labels == 2) & (self.mbb_region == 0)
+        DY_CR_high_mask = (self.labels == 2) & (self.mbb_region == 1)
+
+        # Set class quantiles based on signal
+        nQuantBins = 10
+        quant_binning_class = np.zeros(nQuantBins+1) # Need +1 because 10 bins actually have 11 edges
+        quant_binning_class[1:nQuantBins] = np.quantile(pred_signal[Sig_SR_mask], [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]) # Change list to something dynamic with nQuantBins
+        quant_binning_class[-1] = 1.0 
+        print("We found quant binning class")
+        print(quant_binning_class)
+
+
+        quant_binning_adv = np.zeros(nQuantBins+1) # Need +1 because 10 bins actually have 11 edges
+        quant_binning_adv[1:nQuantBins] = np.quantile(pred_adv[TT_SR_mask], [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]) # Change list to something dynamic with nQuantBins
+        quant_binning_adv[-1] = 1.0 
+        print("We found quant binning adv")
+        print(quant_binning_adv)
+
+
+        mask_dict = {
+          'Signal': {
+            'SR': Sig_SR_mask,
+            'CR_high': Sig_CR_high_mask,
+          },
+          'TT': {
+            'SR': TT_SR_mask,
+            'CR_high': TT_CR_high_mask,
+          },
+          # 'DY': { # DY weight is turned off
+          #   'SR': DY_SR_mask,
+          #   'CR_high': DY_CR_high_mask,
+          # },
+        }
+
+        # Lets look at Sig
+
+
+        # Lets look at TT
+
+        for process_name in mask_dict.keys():
+          SR_mask = mask_dict[process_name]['SR']
+          CR_high_mask = mask_dict[process_name]['CR_high']
+
+
+
+
+
+
+          class_out_hist_SR, bins = np.histogram(pred_signal[SR_mask], bins=quant_binning_class, range=(0.0, 1.0), weights=class_weight[SR_mask])
+          class_out_hist_CR_high, bins = np.histogram(pred_signal[CR_high_mask], bins=quant_binning_class, range=(0.0, 1.0), weights=class_weight[CR_high_mask])
+
+          # Don't use weights for class
+          # class_out_hist_SR, bins = np.histogram(pred_signal[SR_mask], bins=quant_binning_class, range=(0.0, 1.0))
+          # class_out_hist_CR_high, bins = np.histogram(pred_signal[CR_high_mask], bins=quant_binning_class, range=(0.0, 1.0))
+
+          ROOT_ClassOutput_SR = ROOT.TH1D(f"ClassOutput_{process_name}_SR", f"ClassOutput_{process_name}_SR", nQuantBins, 0.0, 1.0)
+          ROOT_ClassOutput_CR_high = ROOT.TH1D(f"ClassOutput_{process_name}_CR_high", f"ClassOutput_{process_name}_CR_high", nQuantBins, 0.0, 1.0)
+
+
+          for binnum in range(nQuantBins):
+              ROOT_ClassOutput_SR.SetBinContent(binnum+1, class_out_hist_SR[binnum])
+              ROOT_ClassOutput_SR.SetBinError(binnum+1, class_out_hist_SR[binnum]**(0.5))
+              
+              ROOT_ClassOutput_CR_high.SetBinContent(binnum+1, class_out_hist_CR_high[binnum])
+              ROOT_ClassOutput_CR_high.SetBinError(binnum+1, class_out_hist_CR_high[binnum]**(0.5))
+              
+
+          ROOT_ClassOutput_SR.Scale(1.0/ROOT_ClassOutput_SR.Integral())
+          ROOT_ClassOutput_CR_high.Scale(1.0/ROOT_ClassOutput_CR_high.Integral())
+
+
+          canvas = ROOT.TCanvas("c1", "c1", 800, 600)
+          p1 = ROOT.TPad("p1", "p1", 0.0, 0.3, 1.0, 0.9, 0, 0, 0)
+          p1.SetTopMargin(0)
+          p1.Draw()
+          
+          p2 = ROOT.TPad("p2", "p2", 0.0, 0.1, 1.0, 0.3, 0, 0, 0)
+          p2.SetTopMargin(0)
+          p2.SetBottomMargin(0)
+          p2.Draw()
+
+          p1.cd()
+
+          plotlabel = f"Class Output for {process_name}"
+          ROOT_ClassOutput_SR.Draw()
+          ROOT_ClassOutput_SR.SetTitle(plotlabel)
+          ROOT_ClassOutput_SR.SetStats(0)
+          min_val = max(0.0001, min(ROOT_ClassOutput_SR.GetMinimum(), ROOT_ClassOutput_CR_high.GetMinimum()))
+          max_val = max(ROOT_ClassOutput_SR.GetMaximum(), ROOT_ClassOutput_CR_high.GetMaximum())
+          ROOT_ClassOutput_SR.GetYaxis().SetRangeUser(0.1*min_val, 20) # 1000*max_val)
+
+          ROOT_ClassOutput_CR_high.SetLineColor(ROOT.kRed)
+          ROOT_ClassOutput_CR_high.Draw("same")
+
+
+          legend = ROOT.TLegend(0.5, 0.8, 0.9, 0.9)
+          legend.AddEntry(ROOT_ClassOutput_SR, f"{process_name} m_bb SR")
+          legend.AddEntry(ROOT_ClassOutput_CR_high, f"{process_name} m_bb CR High")
+          legend.Draw()
+
+
+          chi2_value = ROOT_ClassOutput_SR.Chi2Test(ROOT_ClassOutput_CR_high, option='WW')
+
+
+          pt = ROOT.TPaveText(0.1,0.8,0.4,0.9, "NDC")
+          pt.AddText(f"Loss {class_loss}")
+          pt.AddText(f"Accuracy {class_accuracy}")
+          pt.AddText(f"Chi2 {chi2_value}")
+          pt.Draw()
+
+          print(f"Setting canvas to log scale with range {min_val}, {max_val}")
+          p1.SetLogy()
+          p1.SetGrid()
+
+          p2.cd()
+
+          ROOT_ClassOutput_Ratio = ROOT_ClassOutput_SR.Clone()
+          ROOT_ClassOutput_Ratio.Divide(ROOT_ClassOutput_CR_high)
+          ROOT_ClassOutput_Ratio.SetTitle("Ratio (SR/CR)")
+          ROOT_ClassOutput_Ratio.GetYaxis().SetRangeUser(0.0, 2.0)
+          ROOT_ClassOutput_Ratio.Draw()
+
+          p2.SetGrid()
+
+
+          canvas.SaveAs(os.path.join(save_path, f'{process_name}_ClassOutput_par{parity_index}_M{para_masspoint}.pdf'))
+
+
+
+
+
+          class_out_hist_SR, bins = np.histogram(pred_signal[SR_mask], bins=nQuantBins, range=(0.0, 1.0), weights=class_weight[SR_mask])
+          class_out_hist_CR_high, bins = np.histogram(pred_signal[CR_high_mask], bins=nQuantBins, range=(0.0, 1.0), weights=class_weight[CR_high_mask])
+
+          # Don't use class weights
+          # class_out_hist_SR, bins = np.histogram(pred_signal[SR_mask], bins=nQuantBins, range=(0.0, 1.0))
+          # class_out_hist_CR_high, bins = np.histogram(pred_signal[CR_high_mask], bins=nQuantBins, range=(0.0, 1.0))
+
+          ROOT_ClassOutput_SR = ROOT.TH1D(f"ClassOutput_{process_name}_SR", f"ClassOutput_{process_name}_SR", nQuantBins, 0.0, 1.0)
+          ROOT_ClassOutput_CR_high = ROOT.TH1D(f"ClassOutput_{process_name}_CR_high", f"ClassOutput_{process_name}_CR_high", nQuantBins, 0.0, 1.0)
+
+
+          for binnum in range(nQuantBins):
+              ROOT_ClassOutput_SR.SetBinContent(binnum+1, class_out_hist_SR[binnum])
+              ROOT_ClassOutput_SR.SetBinError(binnum+1, class_out_hist_SR[binnum]**(0.5))
+              
+              ROOT_ClassOutput_CR_high.SetBinContent(binnum+1, class_out_hist_CR_high[binnum])
+              ROOT_ClassOutput_CR_high.SetBinError(binnum+1, class_out_hist_CR_high[binnum]**(0.5))
+              
+
+          ROOT_ClassOutput_SR.Scale(1.0/ROOT_ClassOutput_SR.Integral())
+          ROOT_ClassOutput_CR_high.Scale(1.0/ROOT_ClassOutput_CR_high.Integral())
+
+
+          canvas = ROOT.TCanvas("c1", "c1", 800, 600)
+          p1 = ROOT.TPad("p1", "p1", 0.0, 0.3, 1.0, 0.9, 0, 0, 0)
+          p1.SetTopMargin(0)
+          p1.Draw()
+          
+          p2 = ROOT.TPad("p2", "p2", 0.0, 0.1, 1.0, 0.3, 0, 0, 0)
+          p2.SetTopMargin(0)
+          p2.SetBottomMargin(0)
+          p2.Draw()
+
+          p1.cd()
+
+          plotlabel = f"Class Output for {process_name}"
+          ROOT_ClassOutput_SR.Draw()
+          ROOT_ClassOutput_SR.SetTitle(plotlabel)
+          ROOT_ClassOutput_SR.SetStats(0)
+          min_val = max(0.0001, min(ROOT_ClassOutput_SR.GetMinimum(), ROOT_ClassOutput_CR_high.GetMinimum()))
+          max_val = max(ROOT_ClassOutput_SR.GetMaximum(), ROOT_ClassOutput_CR_high.GetMaximum())
+          ROOT_ClassOutput_SR.GetYaxis().SetRangeUser(0.8*min_val, 20) # 1.5*max_val)
+
+          ROOT_ClassOutput_CR_high.SetLineColor(ROOT.kRed)
+          ROOT_ClassOutput_CR_high.Draw("same")
+
+
+          legend = ROOT.TLegend(0.5, 0.8, 0.9, 0.9)
+          legend.AddEntry(ROOT_ClassOutput_SR, f"{process_name} m_bb SR")
+          legend.AddEntry(ROOT_ClassOutput_CR_high, f"{process_name} m_bb CR High")
+          legend.Draw()
+
+          chi2_value = ROOT_ClassOutput_SR.Chi2Test(ROOT_ClassOutput_CR_high, option='WW')
+
+
+          pt = ROOT.TPaveText(0.1,0.7,0.4,0.9, "NDC")
+          pt.AddText(f"Loss {class_loss}")
+          pt.AddText(f"Accuracy {class_accuracy}")
+          pt.AddText(f"Chi2 {chi2_value}")
+          pt.Draw()
+
+          print(f"Setting canvas to log scale with range {min_val}, {max_val}")
+          p1.SetLogy()
+          p1.SetGrid()
+
+          p2.cd()
+
+          ROOT_ClassOutput_Ratio = ROOT_ClassOutput_SR.Clone()
+          ROOT_ClassOutput_Ratio.Divide(ROOT_ClassOutput_CR_high)
+          ROOT_ClassOutput_Ratio.SetTitle("Ratio (SR/CR)")
+          ROOT_ClassOutput_Ratio.GetYaxis().SetRangeUser(0.0, 2.0)
+          ROOT_ClassOutput_Ratio.Draw()
+
+          p2.SetGrid()
+
+
+          canvas.SaveAs(os.path.join(save_path, f'{process_name}_ClassOutput_par{parity_index}_M{para_masspoint}_raw.pdf'))
+
+
+
+          # Adv Plots
+
+
+          adv_out_hist_SR, bins = np.histogram(pred_adv[SR_mask], bins=quant_binning_adv, range=(0.0, 1.0), weights=adv_weight[SR_mask])
+          adv_out_hist_CR_high, bins = np.histogram(pred_adv[CR_high_mask], bins=quant_binning_adv, range=(0.0, 1.0), weights=adv_weight[CR_high_mask])
+
+          ROOT_AdvOutput_SR = ROOT.TH1D(f"AdvOutput_{process_name}_SR", f"AdvOutput_{process_name}_SR", nQuantBins, 0.0, 1.0)
+          ROOT_AdvOutput_CR_high = ROOT.TH1D(f"AdvOutput_{process_name}_CR_high", f"AdvOutput_{process_name}_CR_high", nQuantBins, 0.0, 1.0)
+
+
+          for binnum in range(nQuantBins):
+              ROOT_AdvOutput_SR.SetBinContent(binnum+1, adv_out_hist_SR[binnum])
+              ROOT_AdvOutput_SR.SetBinError(binnum+1, adv_out_hist_SR[binnum]**(0.5))
+              
+              ROOT_AdvOutput_CR_high.SetBinContent(binnum+1, adv_out_hist_CR_high[binnum])
+              ROOT_AdvOutput_CR_high.SetBinError(binnum+1, adv_out_hist_CR_high[binnum]**(0.5))
+              
+          if ROOT_AdvOutput_SR.Integral() == 0:
+            print(f"Process {process_name} has no adv entries, maybe the weights are all 0 for adv?")
+            continue
+
+
+          ROOT_AdvOutput_SR.Scale(1.0/ROOT_AdvOutput_SR.Integral())
+          ROOT_AdvOutput_CR_high.Scale(1.0/ROOT_AdvOutput_CR_high.Integral())
+
+
+
+
+          canvas = ROOT.TCanvas("c1", "c1", 800, 600)
+          p1 = ROOT.TPad("p1", "p1", 0.0, 0.3, 1.0, 0.9, 0, 0, 0)
+          p1.SetTopMargin(0)
+          p1.Draw()
+          
+          p2 = ROOT.TPad("p2", "p2", 0.0, 0.1, 1.0, 0.3, 0, 0, 0)
+          p2.SetTopMargin(0)
+          p2.SetBottomMargin(0)
+          p2.Draw()
+
+          p1.cd()
+
+          plotlabel = f"Adv Output for {process_name}"
+          ROOT_AdvOutput_SR.Draw()
+          ROOT_AdvOutput_SR.SetTitle(plotlabel)
+          ROOT_AdvOutput_SR.SetStats(0)
+          min_val = max(0.0001, min(ROOT_AdvOutput_SR.GetMinimum(), ROOT_AdvOutput_CR_high.GetMinimum()))
+          max_val = max(ROOT_AdvOutput_SR.GetMaximum(), ROOT_AdvOutput_CR_high.GetMaximum())
+          ROOT_AdvOutput_SR.GetYaxis().SetRangeUser(0.8*min_val, 20) # 1.5*max_val)
+
+          ROOT_AdvOutput_CR_high.SetLineColor(ROOT.kRed)
+          ROOT_AdvOutput_CR_high.Draw("same")
+
+
+          legend = ROOT.TLegend(0.5, 0.8, 0.9, 0.9)
+          legend.AddEntry(ROOT_AdvOutput_SR, f"{process_name} m_bb SR")
+          legend.AddEntry(ROOT_AdvOutput_CR_high, f"{process_name} m_bb CR High")
+          legend.Draw()
+
+          chi2_value = ROOT_AdvOutput_SR.Chi2Test(ROOT_AdvOutput_CR_high, option='WW')
+
+
+          pt = ROOT.TPaveText(0.1,0.7,0.4,0.9, "NDC")
+          pt.AddText(f"Loss {adv_loss}")
+          pt.AddText(f"Accuracy {adv_accuracy}")
+          pt.AddText(f"True Random Loss {adv_loss_random}")
+          pt.AddText(f"Chi2 {chi2_value}")
+          pt.Draw()
+
+
+          print(f"Setting canvas to log scale with range {min_val}, {max_val}")
+          p1.SetLogy()
+          p1.SetGrid()
+
+          p2.cd()
+
+          ROOT_AdvOutput_Ratio = ROOT_AdvOutput_SR.Clone()
+          ROOT_AdvOutput_Ratio.Divide(ROOT_AdvOutput_CR_high)
+          ROOT_AdvOutput_Ratio.SetTitle("Ratio (SR/CR)")
+          ROOT_AdvOutput_Ratio.GetYaxis().SetRangeUser(0.0, 2.0)
+          ROOT_AdvOutput_Ratio.Draw()
+
+          p2.SetGrid()
+
+
+
+          canvas.SaveAs(os.path.join(save_path, f'{process_name}_AdvOutput_par{parity_index}_M{para_masspoint}.pdf'))
+
+
+
+
+
+          adv_out_hist_SR, bins = np.histogram(pred_adv[SR_mask], bins=nQuantBins, range=(0.0, 1.0), weights=adv_weight[SR_mask])
+          adv_out_hist_CR_high, bins = np.histogram(pred_adv[CR_high_mask], bins=nQuantBins, range=(0.0, 1.0), weights=adv_weight[CR_high_mask])
+
+          ROOT_AdvOutput_SR = ROOT.TH1D(f"AdvOutput_{process_name}_SR", f"AdvOutput_{process_name}_SR", nQuantBins, 0.0, 1.0)
+          ROOT_AdvOutput_CR_high = ROOT.TH1D(f"AdvOutput_{process_name}_CR_high", f"AdvOutput_{process_name}_CR_high", nQuantBins, 0.0, 1.0)
+
+
+          for binnum in range(nQuantBins):
+              ROOT_AdvOutput_SR.SetBinContent(binnum+1, adv_out_hist_SR[binnum])
+              ROOT_AdvOutput_SR.SetBinError(binnum+1, adv_out_hist_SR[binnum]**(0.5))
+              
+              ROOT_AdvOutput_CR_high.SetBinContent(binnum+1, adv_out_hist_CR_high[binnum])
+              ROOT_AdvOutput_CR_high.SetBinError(binnum+1, adv_out_hist_CR_high[binnum]**(0.5))
+              
+
+          ROOT_AdvOutput_SR.Scale(1.0/ROOT_AdvOutput_SR.Integral())
+          ROOT_AdvOutput_CR_high.Scale(1.0/ROOT_AdvOutput_CR_high.Integral())
+
+
+          canvas = ROOT.TCanvas("c1", "c1", 800, 600)
+          p1 = ROOT.TPad("p1", "p1", 0.0, 0.3, 1.0, 0.9, 0, 0, 0)
+          p1.SetTopMargin(0)
+          p1.Draw()
+          
+          p2 = ROOT.TPad("p2", "p2", 0.0, 0.1, 1.0, 0.3, 0, 0, 0)
+          p2.SetTopMargin(0)
+          p2.SetBottomMargin(0)
+          p2.Draw()
+
+          p1.cd()
+
+          plotlabel = f"Adv Output for {process_name}"
+          ROOT_AdvOutput_SR.Draw()
+          ROOT_AdvOutput_SR.SetTitle(plotlabel)
+          ROOT_AdvOutput_SR.SetStats(0)
+          min_val = max(0.0001, min(ROOT_AdvOutput_SR.GetMinimum(), ROOT_AdvOutput_CR_high.GetMinimum()))
+          max_val = max(ROOT_AdvOutput_SR.GetMaximum(), ROOT_AdvOutput_CR_high.GetMaximum())
+          ROOT_AdvOutput_SR.GetYaxis().SetRangeUser(0.8*min_val, 20) # 1.5*max_val)
+
+          ROOT_AdvOutput_CR_high.SetLineColor(ROOT.kRed)
+          ROOT_AdvOutput_CR_high.Draw("same")
+
+
+          legend = ROOT.TLegend(0.5, 0.8, 0.9, 0.9)
+          legend.AddEntry(ROOT_AdvOutput_SR, f"{process_name} m_bb SR")
+          legend.AddEntry(ROOT_AdvOutput_CR_high, f"{process_name} m_bb CR High")
+          legend.Draw()
+
+          chi2_value = ROOT_AdvOutput_SR.Chi2Test(ROOT_AdvOutput_CR_high, option='WW')
+
+
+          pt = ROOT.TPaveText(0.1,0.7,0.4,0.9, "NDC")
+          pt.AddText(f"Loss {adv_loss}")
+          pt.AddText(f"Accuracy {adv_accuracy}")
+          pt.AddText(f"True Random Loss {adv_loss_random}")
+          pt.AddText(f"Chi2 {chi2_value}")
+          pt.Draw()
+
+
+          print(f"Setting canvas to log scale with range {min_val}, {max_val}")
+          p1.SetLogy()
+          p1.SetGrid()
+
+          p2.cd()
+
+          ROOT_AdvOutput_Ratio = ROOT_AdvOutput_SR.Clone()
+          ROOT_AdvOutput_Ratio.Divide(ROOT_AdvOutput_CR_high)
+          ROOT_AdvOutput_Ratio.SetTitle("Ratio (SR/CR)")
+          ROOT_AdvOutput_Ratio.GetYaxis().SetRangeUser(0.0, 2.0)
+          ROOT_AdvOutput_Ratio.Draw()
+
+          p2.SetGrid()
+
+          canvas.SaveAs(os.path.join(save_path, f'{process_name}_AdvOutput_par{parity_index}_M{para_masspoint}_raw.pdf'))
+
+
+
+
+
+
 @tf.function
 def binary_entropy(target, output):
   epsilon = tf.constant(1e-7, dtype=tf.float32)
@@ -696,13 +1119,16 @@ def binary_focal_crossentropy(target, output, y_class, y_pred_class):
     gamma = 0.0
 
     # Use signal from multiclass for focal check
-    y_class = y_class[:,0]
-    y_pred_class = y_pred_class[:,0]
+    if y_class is not None:
+      y_class = y_class[:,0]
+      y_pred_class = y_pred_class[:,0]
 
     y_true = tf.expand_dims(target, axis=-1)
     y_pred = output
 
+
     bce = binary_entropy(y_true, y_pred)
+    return bce
 
     # bce = tf.keras.ops.binary_crossentropy(
     #     target=y_true,
@@ -792,6 +1218,44 @@ def categorical_accuracy(target, output):
     return matches
 
 
+
+class EpochCounterCallback(tf.keras.callbacks.Callback):
+    def on_epoch_end(self, epoch, logs=None):
+        self.model.epoch_counter.assign_add(1)
+
+
+
+class AdvOnlyCallback(tf.keras.callbacks.Callback):
+  def __init__(self, train_dataset, nSteps=100, TrackerWindowSize=10):
+    self.train_dataset = train_dataset.repeat()
+    self.trackerWindowSize = TrackerWindowSize
+    self.nSteps = nSteps
+    self.generator = self.looper()
+
+  def looper(self):
+    yield
+    n_window = 0
+    nStep = 0
+    for data in self.train_dataset:
+      self.model._step_adv_only(data, True)
+      n_window += 1
+      if n_window == self.trackerWindowSize:
+        print(f'\nSubmodule loss {self.model.adv_loss_tracker_submodule.result()} and accuracy {self.model.adv_accuracy_tracker_submodule.result()} after {nStep+1} nSteps')
+        self.model.adv_loss_tracker_submodule.reset_state()
+        self.model.adv_accuracy_tracker_submodule.reset_state()
+        n_window = 0
+      nStep += 1
+      if nStep == self.nSteps:
+        nStep = 0 # This is only a counter, so its fine to reset
+        yield
+
+  def on_batch_end(self, batch, logs=None):
+    if self.model.epoch_counter == 0: return
+    next(self.generator)
+    
+
+
+
 class ModelCheckpoint(tf.keras.callbacks.Callback):
   def __init__(self, filepath, monitor="val_loss", verbose=0, mode="min", min_delta=None, min_rel_delta=None,
                save_callback=None, patience=None, predicate=None, input_signature=None):
@@ -846,7 +1310,8 @@ class ModelCheckpoint(tf.keras.callbacks.Callback):
   def on_epoch_end(self, epoch, logs=None):
     self.epochs_since_last_save += 1
     current = logs.get(self.monitor)
-    if self.monitor_op(current, self.best) and (self.predicate is None or self.predicate(self.model, logs)):
+    # if self.monitor_op(current, self.best) and (self.predicate is None or self.predicate(self.model, logs)):
+    if True: # For debugging, lets just save all epochs
       dir_name = f'epoch_{epoch+1}.keras'
       onnx_dir_name = f"epoch_{epoch+1}.onnx"
       os.makedirs(self.filepath, exist_ok = True)
@@ -860,10 +1325,13 @@ class ModelCheckpoint(tf.keras.callbacks.Callback):
       else:
         self.save_callback(self.model, path)
       path_best = os.path.join(self.filepath, 'best')
+      path_best_keras = os.path.join(self.filepath, 'best.keras')
       if os.path.exists(path_best):
         os.remove(path_best)
+        os.remove(path_best_keras)
 
       os.symlink(onnx_dir_name, path_best)
+      os.symlink(dir_name, path_best_keras)
 
       if self.verbose > 0:
         self.msg = f"\nEpoch {epoch+1}: {self.monitor} "
@@ -893,10 +1361,26 @@ class AdversarialModel(tf.keras.Model):
     super().__init__(*args, **kwargs)
     self.setup = setup
 
-    self.adv_optimizer = tf.keras.optimizers.AdamW(
+    self.batch_counter = tf.Variable(0)
+    self.epoch_counter = tf.Variable(0)
+
+    # self.adv_optimizer = tf.keras.optimizers.AdamW(
+    #     learning_rate=setup['adv_learning_rate'],
+    #     weight_decay=setup['adv_weight_decay']
+    # )
+
+    self.adv_optimizer = tf.keras.optimizers.Adam(
         learning_rate=setup['adv_learning_rate'],
-        weight_decay=setup['adv_weight_decay']
+        # weight_decay=setup['adv_weight_decay']
     )
+
+    # self.adv_optimizer = tf.keras.optimizers.Nadam(
+    #     learning_rate=setup['adv_learning_rate'],
+    #     # weight_decay=setup['adv_weight_decay']
+    # )
+
+
+    self.apply_common_gradients = setup['apply_common_gradients']
 
     self.class_grad_factor = setup['class_grad_factor']
 
@@ -925,6 +1409,10 @@ class AdversarialModel(tf.keras.Model):
     self.adv_loss_tracker = tf.keras.metrics.Mean(name="adv_loss")
     self.adv_accuracy_tracker = tf.keras.metrics.Mean(name="adv_accuracy")
 
+    self.adv_loss_tracker_submodule = tf.keras.metrics.Mean(name="adv_loss")
+    self.adv_accuracy_tracker_submodule = tf.keras.metrics.Mean(name="adv_accuracy")
+
+
     self.common_layers = []
 
     def add_layer(layer_list, n_units, activation, name):
@@ -944,30 +1432,44 @@ class AdversarialModel(tf.keras.Model):
     self.adv_layers = []
     for n in range(setup['n_adv_layers']):
       add_layer(self.class_layers, setup['n_adv_units'], setup['activation'], f'class_{n}')
-      add_layer(self.adv_layers, setup['n_adv_units'], setup['activation'], f'adv_{n}')
+      # add_layer(self.adv_layers, setup['n_adv_units'], setup['activation'], f'adv_{n}')
+      add_layer(self.adv_layers, setup['n_adv_units'], 'relu', f'adv_{n}')
+
+    add_layer(self.adv_layers, setup['n_adv_units'], 'relu', f'adv_{n+1}')
+    add_layer(self.adv_layers, setup['n_adv_units'], 'relu', f'adv_{n+2}')
+    add_layer(self.adv_layers, setup['n_adv_units'], 'relu', f'adv_{n+3}')
+
 
     self.class_output = tf.keras.layers.Dense(2, activation='softmax', name='class_output')
-    # self.adv_output = tf.keras.layers.Dense(2, activation='softmax', name='adv_output')
 
-    # self.class_output = tf.keras.layers.Dense(1, activation='sigmoid', name='class_output')
     self.adv_output = tf.keras.layers.Dense(1, activation='sigmoid', name='adv_output')
 
     self.output_names = ['class_output', 'adv_output']
 
-    self.class_weights_lut = setup['class_weights_lut']
-
   def call(self, x):
+    x_common = self.call_common(x)
+    class_output = self.call_class(x_common)
+    adv_output = self.call_adv(x_common)
+    return class_output, adv_output
+
+  def call_common(self, x):
     for layer in self.common_layers:
       x = layer(x)
-    x_common = x
+    return x
+
+  def call_class(self, x_common):
+    x = x_common
     for layer in self.class_layers:
       x = layer(x)
     class_output = self.class_output(x)
+    return class_output
+
+  def call_adv(self, x_common):
     x = x_common
     for layer in self.adv_layers:
       x = layer(x)
     adv_output = self.adv_output(x)
-    return class_output, adv_output
+    return adv_output
 
   def _step(self, data, training):
     x, y = data
@@ -978,41 +1480,6 @@ class AdversarialModel(tf.keras.Model):
     class_weight = tf.cast(y[2], dtype=tf.float32)
     adv_weight = tf.cast(y[3], dtype=tf.float32)
     
-
-    # class_weights = tf.where(
-    #   y_class[:,0] == 1,
-    #   self.class_weights_lut[0],
-    #   self.class_weights_lut[1]
-    # )
-
-
-    # adv_weights = tf.where(
-    #   y_adv == 0,
-    #   self.setup['mbb_CR_weight'],
-    #   self.setup['mbb_SR_weight']
-    # )
-    # Only use adv part when true category is signal
-    # true_signal_mask = tf.expand_dims(y_class, axis=-1) == 0
-
-    # true_signal_mask = (y_class[:,0] == 1)
-
-    # adv_weights = tf.where(
-    #   true_signal_mask,
-    #   0.0,
-    #   adv_weights
-    # )
-
-    # adv_weights = tf.expand_dims(adv_weights, axis=-1)
-
-
-    # And maybe we want to only apply adv part on some loose DNN cut
-    # This can't be done here since we don't have y_pred_class available yet
-    # low_signal_prediction_mask = tf.expand_dims(y_pred_class[:,0], axis=-1) <= 0.3
-    # adv_weights = tf.where(
-    #   low_signal_prediction_mask,
-    #   0.0,
-    #   adv_weights
-    # )
 
     def compute_losses():
       y_pred_class, y_pred_adv = self(x, training=training)
@@ -1066,10 +1533,10 @@ class AdversarialModel(tf.keras.Model):
       grad_common = [ self.class_grad_factor * grad_class[i] - self.adv_grad_factor * grad_adv[i] \
                       for i in range(len(common_vars)) ]
 
-      grad_common_no_adv = [ self.class_grad_factor * grad_class[i] \
+      grad_common_no_adv = [ grad_class[i] \
                       for i in range(len(common_vars)) ]
 
-      grad_common_only_adv = [ self.adv_grad_factor * grad_adv[i] \
+      grad_common_only_adv = [ grad_adv[i] \
                       for i in range(len(common_vars)) ]
 
     #   tf.print("We have to understand why it is not becoming blind")
@@ -1078,13 +1545,89 @@ class AdversarialModel(tf.keras.Model):
     #   tf.print(grad_common_only_adv)
 
 
-      self.optimizer.apply_gradients(zip(grad_common + grad_class_excl, common_vars + class_vars))
+      @tf.function
+      def cond_true_fn():
+        if self.apply_common_gradients:
+          if self.epoch_counter == 0:
+            self.optimizer.apply_gradients(zip(grad_common_no_adv + grad_class_excl, common_vars + class_vars))
+          else:
+            self.optimizer.apply_gradients(zip(grad_common + grad_class_excl, common_vars + class_vars))
+        # tf.print(f"Batch counter mod 10! {self.batch_counter}")
+        return
+
+      @tf.function
+      def cond_false_fn():
+        # tf.print(f"Batch counter not mod 10! {self.batch_counter}")
+        return
+
+
+      # tf.cond(
+      #   (self.batch_counter%10) == (self.epoch_counter%10),
+      #   true_fn = cond_true_fn,
+      #   false_fn = cond_false_fn
+      # )
+
+
+      cond_true_fn()
       self.adv_optimizer.apply_gradients(zip(grad_adv_excl, adv_vars))
+
+
+      # if self.apply_common_gradients:
+      #   self.optimizer.apply_gradients(zip(grad_common + grad_class_excl, common_vars + class_vars))
+      # self.adv_optimizer.apply_gradients(zip(grad_adv_excl, adv_vars))
 
 
     return { m.name: m.result() for m in self.metrics }
 
+
+
+
+  def _step_adv_only(self, data, training):
+    x, y = data
+
+    y_adv = tf.cast(y[1], dtype=tf.float32)
+
+    adv_weight = tf.cast(y[3], dtype=tf.float32)
+    
+
+    def compute_losses(x_common):
+      y_pred_adv = self.call_adv(x_common)
+
+      adv_loss_vec = self.adv_loss(y_adv, y_pred_adv, None, None) # Focal loss
+      # adv_loss_vec = self.adv_loss(y_adv, y_pred_adv)
+      # We want to apply some weights onto the adv loss vector
+      # This is to have the SignalRegion and ControlRegion have equal weights
+
+      adv_loss = tf.reduce_mean(adv_loss_vec * adv_weight)
+      return y_pred_adv, adv_loss_vec, adv_loss
+
+    if training:
+      x_common = self.call_common(x)
+      with tf.GradientTape() as adv_tape:
+        y_pred_adv, adv_loss_vec, adv_loss = compute_losses(x_common)
+    else:
+      y_pred_adv, adv_loss_vec, adv_loss = compute_losses()
+
+
+    adv_accuracy_vec = self.adv_accuracy(y_adv, y_pred_adv)
+
+    self.adv_loss_tracker_submodule.update_state(adv_loss_vec, sample_weight=adv_weight)
+    self.adv_accuracy_tracker_submodule.update_state(adv_accuracy_vec, sample_weight=adv_weight)
+
+    if training:
+      adv_vars = [ var for var in self.trainable_variables if "/adv" in var.path ]
+
+
+      grad_adv = adv_tape.gradient(adv_loss, adv_vars)
+
+      self.adv_optimizer.apply_gradients(zip(grad_adv, adv_vars))
+
+    return
+
+ 
+
   def train_step(self, data):
+    self.batch_counter = self.batch_counter.assign_add(1)
     return self._step(data, training=True)
 
   def test_step(self, data):
@@ -1109,22 +1652,32 @@ class AdversarialModel(tf.keras.Model):
 
 
 def train_dnn():
-    input_folder = "DNN_dataset_2025-03-19-13-41-00"
+    input_folder = "DNN_Datasets/Dataset_2025-03-28-12-49-16"
     yaml_list = [fname for fname in os.listdir(input_folder) if fname.startswith('batch_config_parity')]
 
     modelname_parity = []
 
-    for config_yaml in yaml_list:
+    for i, config_yaml in enumerate(yaml_list):
         config_dict = {}
         with open(os.path.join(input_folder, config_yaml), 'r') as file:
             config_dict = yaml.safe_load(file)  
 
+        val_config_dict = {}
+        val_yaml = yaml_list[i+1] if (i+1) != len(yaml_list) else yaml_list[0]
+        with open(os.path.join(input_folder, val_yaml), 'r') as file:
+            val_config_dict = yaml.safe_load(file)  
+
         batch_size = config_dict['meta_data']['batch_dict']['batch_size']
+        val_batch_size = val_config_dict['meta_data']['batch_dict']['batch_size']
 
         input_file_name = os.path.join(input_folder, config_dict['meta_data']['input_filename'])
         input_weight_name = os.path.join(input_folder, f"weight{config_dict['meta_data']['input_filename'][5:]}")
 
-        output_folder = "DNN_Blind_v11"
+        input_file_name_val = os.path.join(input_folder, val_config_dict['meta_data']['input_filename'])
+        input_weight_name_val = os.path.join(input_folder, f"weight{val_config_dict['meta_data']['input_filename'][5:]}")
+
+
+        output_folder = "DNN_Models/v17"
         model_name = config_dict['meta_data']['output_DNNname']
         output_dnn_name = os.path.join(output_folder, model_name)
 
@@ -1159,10 +1712,19 @@ def train_dnn():
 
         dw.SetMbbName('bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino')
 
+        # Prep a test dw
+        # Must copy before reading file so we can read the test file instead
+        dw_val = copy.deepcopy(dw)
+
         dw.ReadFile(input_file_name)
         dw.ReadWeightFile(input_weight_name)
         print(config_dict)
-        dw.DefineTrainTestSet(batch_size, 0.2)
+        dw.DefineTrainTestSet(batch_size, 0.0)
+
+
+        dw_val.ReadFile(input_file_name_val)
+        dw_val.ReadWeightFile(input_weight_name_val)
+        dw_val.DefineTrainTestSet(val_batch_size, 0.0)
 
 
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
@@ -1176,26 +1738,32 @@ def train_dnn():
             'weight_decay': 0.004,
             'adv_weight_decay': 0.004,
             'adv_grad_factor': 1.0, #0.7
-            'class_grad_factor': 0.1,
-            'activation': 'tanh', #'relu'
+            'class_grad_factor': 0.0001,
+            'activation': 'tanh', #'relu' # This one will be deleted
+            'common_activation': 'tanh', #'relu'
+            'class_activation': 'tanh', #'relu'
+            'adv_activation': 'relu', #'relu'
             'use_batch_norm': False,
             'dropout': 0.0,
             'n_common_layers': 10,
             'n_common_units': 256,
             'n_adv_layers': 3,
             'n_adv_units': 128,
-            'n_epochs': 10,
-            'patience': 10,
-            'mbb_CR_weight': dw.mbb_CR_weight,
-            'mbb_SR_weight': dw.mbb_SR_weight,
-            'class_weights_lut': dw.class_weights_lut,
+            'n_epochs': 20,
+            'patience': 100,
+            'apply_common_gradients': True,
         }
 
 
         model = AdversarialModel(setup)
         model.compile(loss=None,
-                    optimizer=tf.keras.optimizers.AdamW(learning_rate=setup['learning_rate'],
-                                                        weight_decay=setup['weight_decay']))
+                    # optimizer=tf.keras.optimizers.AdamW(learning_rate=setup['learning_rate'],
+                    #                                     weight_decay=setup['weight_decay']))
+                    optimizer=tf.keras.optimizers.Nadam(learning_rate=setup['learning_rate'],
+                                                        # weight_decay=setup['weight_decay']))
+                    )
+        )
+
 
         model(dw.train_features)
 
@@ -1203,8 +1771,13 @@ def train_dnn():
 
 
 
+        train_tf_dataset = tf.data.Dataset.from_tensor_slices((dw.train_features, (tf.one_hot(dw.train_labels_binary, 2), dw.train_mbb, dw.train_class_weight, dw.train_adv_weight))).batch(batch_size)
+
+        val_tf_dataset = tf.data.Dataset.from_tensor_slices((dw_val.train_features, (tf.one_hot(dw_val.train_labels_binary, 2), dw_val.train_mbb, dw_val.train_class_weight, dw_val.train_adv_weight))).batch(val_batch_size)
+
+
         def save_predicate(model, logs):
-            return abs(logs['val_adv_accuracy'] - 0.5) < 0.01
+            return abs(logs['val_adv_accuracy'] - 0.5) < 0.001
 
 
         input_shape = [None, dw.train_features.shape[1]]
@@ -1213,24 +1786,61 @@ def train_dnn():
             ModelCheckpoint(output_dnn_name, verbose=1, monitor="val_class_loss", mode='min', min_rel_delta=1e-3,
                             patience=setup['patience'], save_callback=None, predicate=save_predicate, input_signature=input_signature),
             tf.keras.callbacks.CSVLogger(f'{output_dnn_name}_training_log.csv', append=True),
+            EpochCounterCallback(),
+            AdvOnlyCallback(train_tf_dataset, nSteps=10, TrackerWindowSize=10),
         ]
 
+
+
+        print("Save model configuration")
+        modelname_parity.append([model_name, config_dict['meta_data']['iterate_cut']])
+        features_config = {
+            'features': dw.feature_names,
+            'listfeatures': dw.listfeature_names,
+            'highlevelfeatures': dw.highlevelfeatures_names,
+            'use_parametric': dw.use_parametric,
+            'modelname_parity': modelname_parity,
+            'parametric_list': dw.param_list,
+            'model_setup': setup,
+        }
+        
+        with open(os.path.join(dw.output_folder, 'dnn_config.yaml'), 'w') as file:
+            yaml.dump(features_config, file)
+
+
+
+        # print("Fit model")
+        # history = model.fit(
+        #     dw.train_features,
+        #     # (dw.train_labels, dw.train_mbb),
+        #     (tf.one_hot(dw.train_labels_binary, 2), dw.train_mbb, dw.train_class_weight, dw.train_adv_weight),
+        #     validation_data=(
+        #         dw_val.train_features,
+        #         # (dw.test_labels, dw.test_mbb)
+        #         # (tf.one_hot(dw.test_labels_binary, 2), dw.test_mbb, dw.test_class_weight, dw.test_adv_weight)
+        #         (tf.one_hot(dw_val.train_labels_binary, 2), dw_val.train_mbb, dw_val.train_class_weight, dw_val.train_adv_weight)
+        #     ),
+        #     verbose=1,
+        #     batch_size=batch_size,
+        #     epochs=setup['n_epochs'],
+        #     shuffle=False,
+        #     callbacks=callbacks,
+        #     validation_batch_size=val_batch_size,
+        # )
+        
+
+
+        print("Fit model")
         history = model.fit(
-            dw.train_features,
-            # (dw.train_labels, dw.train_mbb),
-            (tf.one_hot(dw.train_labels_binary, 2), dw.train_mbb, dw.train_class_weight, dw.train_adv_weight),
-            validation_data=(
-                dw.test_features,
-                # (dw.test_labels, dw.test_mbb)
-                (tf.one_hot(dw.test_labels_binary, 2), dw.test_mbb, dw.test_class_weight, dw.test_adv_weight)
-            ),
+            train_tf_dataset,
+            validation_data=val_tf_dataset,
             verbose=1,
-            batch_size=batch_size,
             epochs=setup['n_epochs'],
             shuffle=False,
             callbacks=callbacks,
         )
-        
+
+
 
         model.save(f"{output_dnn_name}.keras")
 
@@ -1242,63 +1852,199 @@ def train_dnn():
 
 
 
-
-
-        print("Saved model")
-        modelname_parity.append([model_name, config_dict['meta_data']['iterate_cut']])
-        features_config = {
-            'features': dw.feature_names,
-            'listfeatures': dw.listfeature_names,
-            'highlevelfeatures': dw.highlevelfeatures_names,
-            'use_parametric': dw.use_parametric,
-            'modelname_parity': modelname_parity
-        }
-        
-        with open(os.path.join(dw.output_folder, 'dnn_config.yaml'), 'w') as file:
-            yaml.dump(features_config, file)
+        return
 
 
 
-        PlotMetric(history, model_name, "class_loss", output_folder)
-        PlotMetric(history, model_name, "adv_loss", output_folder)
+def adv_only_training(model_name, model_config, train_file, train_weight, test_file, test_weight, batch_size=1000):
+
+  print("Can I just continue training the same model?")
+
+  dnnConfig = {}
+  with open(model_config, 'r') as file:
+    dnnConfig = yaml.safe_load(file)  
+
+
+  #Features to use for DNN application (single vals)
+  features = dnnConfig['features']
+  #Features to use for DNN application (vectors and index)
+  list_features = dnnConfig['listfeatures']
+  list_features_dict = {}
+  for list_feature in list_features:
+    if str(list_feature[1]) not in list_features_dict.keys():
+      list_features_dict[str(list_feature[1])] = []
+    list_features_dict[str(list_feature[1])].append(list_feature[0])
+
+  #Features to use for DNN application (high level names to create)
+  highlevel_features = dnnConfig['highlevelfeatures']
+
+  parametric_list = dnnConfig['parametric_list']
+
+  dw = DataWrapper()
+  dw.AddInputFeatures(features)
+  for list_feature_key in list_features_dict.keys():
+    dw.AddInputFeaturesList(list_features_dict[list_feature_key], int(list_feature_key))
+  dw.AddHighLevelFeatures(highlevel_features)
+
+  dw.SetBinary(True)
+  dw.UseParametric(False)
+  dw.SetParamList(parametric_list)
+
+  dw.AddInputLabel('sample_type')
+
+  dw.SetMbbName('bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino')
+
+
+  dw_val = copy.deepcopy(dw)
+
+  dw.ReadFile(train_file)
+  dw.ReadWeightFile(train_weight)
+  dw.DefineTrainTestSet(batch_size, 0.0)
+
+  dw_val.ReadFile(test_file)
+  dw_val.ReadWeightFile(test_weight)
+  dw_val.DefineTrainTestSet(batch_size, 0.0)
+
+
+  setup2 = dnnConfig['model_setup']
+  setup2['apply_common_gradients'] = False
+  setup2['adv_learning_rate'] = 0.01
+
+  model2 = AdversarialModel(setup2)
+  model2.compile(loss=None,
+              optimizer=tf.keras.optimizers.Nadam(learning_rate=setup2['learning_rate'],
+                                                  # weight_decay=setup2['weight_decay']))
+              ))
+
+  model2(dw.train_features)
+
+  model2.summary()
+
+
+  print("Now we will load weights onto model 2")
+  # model2.load_weights(os.path.join(output_dnn_name, 'best.keras'))
+  model2.load_weights(model_name, skip_mismatch=True)
+
+  # for i, layer in enumerate(model2.layers):
+  #   print(f"On layer {i} name {layer.name}")
+  #   print(layer.get_config(), layer.get_weights())
+
+  for layer in model2.layers:
+      layer_name = layer.name
+      if not layer_name.startswith("adv"):
+         print(f"Not an adv layer {layer_name}")
+         continue
+
+      if not isinstance(layer, tf.keras.layers.Dense):
+          raise ValueError(f"Layer '{layer_name}' is not a Dense layer.")
+      kernel_weights = layer.kernel_initializer(layer.kernel.shape)
+      bias_weights = layer.bias_initializer(layer.bias.shape)
+      layer.set_weights([kernel_weights, bias_weights])
+
+
+  # for i, layer in enumerate(model2.layers):
+  #   print(f"On layer {i} name {layer.name}")
+  #   print(layer.get_config(), layer.get_weights())
 
 
 
-        # But model is what was the last epoch, not necessarily the best model (if early stopping triggered with patience)
-        # Need to load the best model file
+  print("And continue training")
+  history2 = model2.fit(
+      dw.train_features,
+      # (dw.train_labels, dw.train_mbb),
+      (tf.one_hot(dw.train_labels_binary, 2), dw.train_mbb, dw.train_class_weight, dw.train_adv_weight),
+      validation_data=(
+          dw_val.train_features,
+          # (dw.test_labels, dw.test_mbb)
+          # (tf.one_hot(dw.test_labels_binary, 2), dw.test_mbb, dw.test_class_weight, dw.test_adv_weight)
+          (tf.one_hot(dw_val.train_labels_binary, 2), dw_val.train_mbb, dw_val.train_class_weight, dw_val.train_adv_weight)
+      ),
+      verbose=1,
+      batch_size=batch_size,
+      epochs=setup2['n_epochs'],
+      shuffle=False,
+      validation_batch_size=batch_size,
+  )
 
 
-        model_load_name = os.path.join(output_dnn_name, 'best')
-        print(f"Model load {model_load_name}")
-        sess = ort.InferenceSession(model_load_name)
-
-        print(f"Type sess {type(sess)}")
-        print(f"Type model {type(model)}")
-        validate = True
-        if validate:
-            # Cool! In the debugging stage, now lets also predict the output on batch1 file!
-            other_parity_files = [os.path.join(input_folder, fname) for fname in os.listdir(input_folder) if fname.startswith('batchfile') and (fname != config_dict['meta_data']['input_filename'])]
-            for i, other_parity_file in enumerate(other_parity_files):
-                dw.ReadFile(other_parity_file)
-
-                # dw.validate_output(model, model_name, i)
-                dw.validate_output(sess, model_name, i)
-                break # For now, don't validate on each nParity 
-
-        return # And just end training after first model
+  return
 
 
-        # An example of how to load the onnx version
-        # load_model = False
-        # if load_model:
-        #     print("ORT result")
-        #     sess = ort.InferenceSession(os.path.join(dw.output_folder, f"{model_name}.onnx"))
-        #     res = sess.run(None, {'x': dw.features})
-        #     print(res)
-        
+  # PlotMetric(history, model_name, "class_loss", output_folder)
+  # PlotMetric(history, model_name, "adv_loss", output_folder)
 
 
 
+  # # But model is what was the last epoch, not necessarily the best model (if early stopping triggered with patience)
+  # # Need to load the best model file
+
+  # model_load_name = os.path.join(output_dnn_name, 'best')
+  # print(f"Model load {model_load_name}")
+  # sess = ort.InferenceSession(model_load_name)
+
+  # print(f"Type sess {type(sess)}")
+  # print(f"Type model {type(model)}")
+  # validate = True
+  # if validate:
+  #     # Cool! In the debugging stage, now lets also predict the output on batch1 file!
+  #     other_parity_files = [os.path.join(input_folder, fname) for fname in os.listdir(input_folder) if fname.startswith('batchfile') and (fname != config_dict['meta_data']['input_filename'])]
+  #     for i, other_parity_file in enumerate(other_parity_files):
+  #         dw.ReadFile(other_parity_file)
+
+  #         # dw.validate_output(model, model_name, i)
+  #         dw.validate_output(sess, model_name, i)
+  #         break # For now, don't validate on each nParity 
+
+  # return # And just end training after first model
+
+
+
+def validate_model(model_name, model_config, validation_file, validation_weight, nParity):
+    # model_load_name = os.path.join(model_name, 'best')
+    model_load_name = model_name
+    print(f"Model load {model_load_name}")
+    sess = ort.InferenceSession(model_load_name)
+
+    print(f"Type sess {type(sess)}")
+
+
+    dnnConfig = {}
+    with open(model_config, 'r') as file:
+        dnnConfig = yaml.safe_load(file)  
+
+
+    #Features to use for DNN application (single vals)
+    features = dnnConfig['features']
+    #Features to use for DNN application (vectors and index)
+    list_features = dnnConfig['listfeatures']
+    list_features_dict = {}
+    for list_feature in list_features:
+      if str(list_feature[1]) not in list_features_dict.keys():
+        list_features_dict[str(list_feature[1])] = []
+      list_features_dict[str(list_feature[1])].append(list_feature[0])
+
+    #Features to use for DNN application (high level names to create)
+    highlevel_features = dnnConfig['highlevelfeatures']
+
+    parametric_list = dnnConfig['parametric_list']
+
+    dw = DataWrapper()
+    dw.AddInputFeatures(features)
+    for list_feature_key in list_features_dict.keys():
+      dw.AddInputFeaturesList(list_features_dict[list_feature_key], int(list_feature_key))
+    dw.AddHighLevelFeatures(highlevel_features)
+
+    dw.SetBinary(True)
+    dw.UseParametric(False)
+    dw.SetParamList(parametric_list)
+
+    dw.AddInputLabel('sample_type')
+
+    dw.SetMbbName('bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino')
+
+    dw.ReadFile(validation_file)
+    dw.ReadWeightFile(validation_weight)
+    dw.validate_output(sess, model_name, nParity)
 
 
 
@@ -1310,4 +2056,25 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    model = train_dnn()
+    # model = train_dnn()
+
+    model_name = f"DNN_Models/v17/ResHH_Classifier_parity0/epoch_20.keras"
+    model_config = "DNN_Models/v17/dnn_config.yaml"
+    train_file = f"DNN_Datasets/Dataset_2025-03-28-12-49-16/batchfile0.root"
+    train_weight = f"DNN_Datasets/Dataset_2025-03-28-12-49-16/weightfile0.root"
+    test_file = f"DNN_Datasets/Dataset_2025-03-28-12-49-16/batchfile1.root"
+    test_weight = f"DNN_Datasets/Dataset_2025-03-28-12-49-16/weightfile1.root"
+    adv_only_training(model_name, model_config, train_file, train_weight, test_file, test_weight)
+
+    model_name = f"DNN_Models/v17/ResHH_Classifier_parity0/epoch_20.onnx"
+    validate_model(model_name, model_config, test_file, test_weight, 1)
+
+
+    # for i in range(4):
+    #   j = i+1 if i != 3 else 0
+    #   model_name = f"DNN_Models/v16/ResHH_Classifier_parity{i}/"
+    #   model_config = "DNN_Models/v16/dnn_config.yaml"
+    #   validation_file = f"DNN_Datasets/Dataset_2025-03-28-12-49-16/batchfile{j}.root"
+    #   weight_file = f"DNN_Datasets/Dataset_2025-03-28-12-49-16/weightfile{j}.root"
+    #   validate_model(model_name, model_config, validation_file, weight_file, j)
+    #   break
