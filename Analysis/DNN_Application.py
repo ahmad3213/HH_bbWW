@@ -106,6 +106,8 @@ def run_inference_for_tree(tree_name, rdf, models, globalConfig, dnnConfig, outp
     use_parametric = dnnConfig['use_parametric']
     param_mass_list = [250, 260, 270, 280, 300, 350, 450, 550, 600, 650, 700, 800, 1000 ]
 
+    class_names_list = dnnConfig['class_names'] if 'class_names' in dnnConfig.keys() else ['Signal', 'TT', 'DY']
+
     if not use_parametric:
         param_mass_list = [0]
 
@@ -176,9 +178,12 @@ def run_inference_for_tree(tree_name, rdf, models, globalConfig, dnnConfig, outp
         for param_idx, param_mass in enumerate(param_mass_list):
             prediction = all_predictions[param_idx,:,:] # Now we want to get the individual param masses predictions for filling
 
-            branches[f'dnn_M{param_mass}_Signal'] = prediction.transpose()[0]
-            branches[f'dnn_M{param_mass}_TT'] = prediction.transpose()[1]
-            branches[f'dnn_M{param_mass}_DY'] = prediction.transpose()[2]
+            for class_idx, class_name in enumerate(class_names_list):
+                branches[f'dnn_M{param_mass}_{class_name}'] = prediction.transpose()[class_idx]
+
+                # branches[f'dnn_M{param_mass}_Signal'] = prediction.transpose()[0]
+                # branches[f'dnn_M{param_mass}_TT'] = prediction.transpose()[1]
+                # branches[f'dnn_M{param_mass}_DY'] = prediction.transpose()[2]
 
         #But we want to drop the features from this outfile
         print("Dropping ", features_to_drop)
@@ -186,7 +191,6 @@ def run_inference_for_tree(tree_name, rdf, models, globalConfig, dnnConfig, outp
             del branches[feature]
 
         #This will save the file
-        print("Saving tree")
         outfile = uproot.recreate(outFileName)
         outfile['Events'] = branches
 
