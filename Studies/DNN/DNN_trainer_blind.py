@@ -18,6 +18,31 @@ import shutil
 import copy
 
 
+import threading
+from FLAF.RunKit.crabLaw import update_kinit_thread
+
+
+thread = threading.Thread(target=update_kinit_thread)
+thread.start()
+
+
+tf.keras.backend.clear_session()
+gpus = tf.config.list_physical_devices('GPU')
+# if gpus:
+#   # Restrict TensorFlow to only allocate 1GB of memory on the first GPU
+#   try:
+#     tf.config.set_logical_device_configuration(
+#         gpus[0],
+#         [tf.config.LogicalDeviceConfiguration(memory_limit=2048)])
+#     logical_gpus = tf.config.list_logical_devices('GPU')
+#     print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+#   except RuntimeError as e:
+#     # Virtual devices must be set before GPUs have been initialized
+#     print(e)
+
+if gpus:
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, False)
 
 
 def PlotMetric(history, model, metric, output_folder):
@@ -510,8 +535,9 @@ class DataWrapper():
           p2.SetGrid()
 
 
-          canvas.SaveAs(os.path.join(save_path, f'{process_name}_ClassOutput_par{parity_index}_M{para_masspoint}.pdf'))
-
+          plot_name = os.path.join(save_path, f'{process_name}_ClassOutput_par{parity_index}_M{para_masspoint}.pdf')
+          canvas.SaveAs(plot_name)
+          os.system(f"imgcat {plot_name}")
 
 
 
@@ -787,7 +813,10 @@ def binary_focal_crossentropy(target, output, y_class, y_pred_class):
     y_true = target
     y_pred = output[:,0]
 
+
     bce = binary_entropy(y_true, y_pred)
+
+
     return bce
 
     # bce = tf.keras.ops.binary_crossentropy(
@@ -901,16 +930,19 @@ def ks_test(x, y):
 
 class EpochCounterCallback(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
-        self.model.epoch_counter.assign_add(1)
+        self.model.epoch_counter.assign_add(1.0)
+        return
 
 class AdvOnlyCallback(tf.keras.callbacks.Callback):
-  def __init__(self, train_dataset, nSteps=100, TrackerWindowSize=10, on_batch=True, on_epoch=False):
+  def __init__(self, train_dataset, nSteps=100, TrackerWindowSize=10, on_batch=True, on_epoch=False, continue_training=False, quiet=False):
     self.train_dataset = train_dataset.repeat()
     self.trackerWindowSize = TrackerWindowSize
     self.nSteps = nSteps
     self.generator = self.looper()
     self.on_batch = on_batch
     self.on_epoch = on_epoch
+    self.continue_training = continue_training #self.setup['continue_training'] When we continue, there is no point to skipping first epoch
+    self.quiet = quiet
 
   def looper(self):
     yield
@@ -920,7 +952,7 @@ class AdvOnlyCallback(tf.keras.callbacks.Callback):
       self.model._step_adv_only(data, True)
       n_window += 1
       if n_window == self.trackerWindowSize:
-        print(f'\nSubmodule loss {self.model.adv_loss_tracker_submodule.result()} and accuracy {self.model.adv_accuracy_tracker_submodule.result()} after {nStep+1} nSteps')
+        if not self.quiet: print(f'\nSubmodule loss {self.model.adv_loss_tracker_submodule.result()} and accuracy {self.model.adv_accuracy_tracker_submodule.result()} after {nStep+1} nSteps')
         self.model.adv_loss_tracker_submodule.reset_state()
         self.model.adv_accuracy_tracker_submodule.reset_state()
         n_window = 0
@@ -930,13 +962,13 @@ class AdvOnlyCallback(tf.keras.callbacks.Callback):
         yield
 
   def on_batch_end(self, batch, logs=None):
-    if self.model.epoch_counter == 0: return
+    if self.model.epoch_counter == 0. and not self.continue_training: return
     if self.on_batch:
       next(self.generator)
     
 
   def on_epoch_end(self, epoch, logs=None):
-    if self.model.epoch_counter == 0: return
+    if self.model.epoch_counter == 0. and not self.continue_training: return
     if self.on_epoch:
        next(self.generator)
 
@@ -996,8 +1028,7 @@ class ModelCheckpoint(tf.keras.callbacks.Callback):
   def on_epoch_end(self, epoch, logs=None):
     self.epochs_since_last_save += 1
     current = logs.get(self.monitor)
-    # if self.monitor_op(current, self.best) and (self.predicate is None or self.predicate(self.model, logs)):
-    if True: # For debugging, lets just save all epochs
+    if self.monitor_op(current, self.best) and (self.predicate is None or self.predicate(self.model, logs)):
       dir_name = f'epoch_{epoch+1}.keras'
       onnx_dir_name = f"epoch_{epoch+1}.onnx"
       os.makedirs(self.filepath, exist_ok = True)
@@ -1010,7 +1041,7 @@ class ModelCheckpoint(tf.keras.callbacks.Callback):
 
       else:
         self.save_callback(self.model, path)
-      path_best = os.path.join(self.filepath, 'best')
+      path_best = os.path.join(self.filepath, 'best.onnx')
       path_best_keras = os.path.join(self.filepath, 'best.keras')
       if os.path.exists(path_best):
         os.remove(path_best)
@@ -1047,8 +1078,12 @@ class AdversarialModel(tf.keras.Model):
     super().__init__(*args, **kwargs)
     self.setup = setup
 
-    self.batch_counter = tf.Variable(0)
-    self.epoch_counter = tf.Variable(0)
+
+    # self.batch_counter = tf.Variable(0)
+    self.epoch_counter = tf.Variable(0.)
+
+    # print(self.epoch_counter.device)
+
 
     # self.adv_optimizer = tf.keras.optimizers.AdamW(
     #     learning_rate=setup['adv_learning_rate'],
@@ -1081,8 +1116,6 @@ class AdversarialModel(tf.keras.Model):
 
     self.class_loss_tracker = tf.keras.metrics.Mean(name="class_loss")
     self.class_accuracy_tracker = tf.keras.metrics.Mean(name="class_accuracy")
-
-    self.new_loss_tracker = tf.keras.metrics.Mean(name="new_loss")
 
 
     self.adv_grad_factor = setup['adv_grad_factor']
@@ -1161,6 +1194,12 @@ class AdversarialModel(tf.keras.Model):
     y_class = tf.cast(y[0], dtype=tf.float32)
     y_adv = tf.cast(y[1], dtype=tf.float32)
 
+    # y_adv = tf.where(
+    #    y_adv == tf.cast(-1, dtype=tf.float32),
+    #    tf.cast(1, dtype=tf.float32),
+    #    y_adv
+    # )
+
     class_weight = tf.cast(y[2], dtype=tf.float32)
     adv_weight = tf.cast(y[3], dtype=tf.float32)
     
@@ -1179,6 +1218,10 @@ class AdversarialModel(tf.keras.Model):
 
       adv_loss = tf.reduce_mean(adv_loss_vec * adv_weight)
 
+      # tf.print("Debug adv loss")
+      # tf.print(adv_loss_vec)
+      # tf.print(adv_weight)
+      # tf.print(adv_loss)
 
       # Experimental ks test loss
       # Combine both class and adv loss into one 'loss' and put into only one optimizer
@@ -1243,17 +1286,28 @@ class AdversarialModel(tf.keras.Model):
       @tf.function
       def cond_true_fn():
         if self.apply_common_gradients:
-          if self.epoch_counter == 0:
-            self.optimizer.apply_gradients(zip(grad_common_no_adv + grad_class_excl, common_vars + class_vars))
-          else:
-            self.optimizer.apply_gradients(zip(grad_common + grad_class_excl, common_vars + class_vars))
-        # tf.print(f"Batch counter mod 10! {self.batch_counter}")
+          tf.cond(
+            self.epoch_counter == 0. and not self.setup['continue_training'],
+            true_fn = apply_common_no_adv,
+            false_fn = apply_common
+          )
         return
+      
+      @tf.function
+      def apply_common_no_adv():
+        self.optimizer.apply_gradients(zip(grad_common_no_adv + grad_class_excl, common_vars + class_vars))
+        return 
+      
+      @tf.function
+      def apply_common():
+        self.optimizer.apply_gradients(zip(grad_common + grad_class_excl, common_vars + class_vars))
+        return 
 
       @tf.function
       def cond_false_fn():
-        # tf.print(f"Batch counter not mod 10! {self.batch_counter}")
         return
+
+
 
 
       # tf.cond(
@@ -1261,7 +1315,6 @@ class AdversarialModel(tf.keras.Model):
       #   true_fn = cond_true_fn,
       #   false_fn = cond_false_fn
       # )
-
 
       cond_true_fn()
       self.adv_optimizer.apply_gradients(zip(grad_adv_excl, adv_vars))
@@ -1294,6 +1347,13 @@ class AdversarialModel(tf.keras.Model):
       # This is to have the SignalRegion and ControlRegion have equal weights
 
       adv_loss = tf.reduce_mean(adv_loss_vec * adv_weight)
+
+
+      # tf.print("Adv only! Debug adv loss")
+      # tf.print(adv_loss_vec)
+      # tf.print(adv_weight)
+      # tf.print(adv_loss)
+
       return y_pred_adv, adv_loss_vec, adv_loss
 
     if training:
@@ -1322,7 +1382,11 @@ class AdversarialModel(tf.keras.Model):
  
 
   def train_step(self, data):
-    self.batch_counter = self.batch_counter.assign_add(1)
+    # tf.print("We are going to assign add batch counter")
+    # print("We are going to assign add batch counter")
+    # self.batch_counter = self.batch_counter.assign_add(1)
+    # tf.print("We did it")
+    # print("We did it")
     return self._step(data, training=True)
 
   def test_step(self, data):
@@ -1333,8 +1397,6 @@ class AdversarialModel(tf.keras.Model):
     return [
           self.class_loss_tracker,
           self.class_accuracy_tracker,
-
-          self.new_loss_tracker,
 
           self.adv_loss_tracker,
           self.adv_accuracy_tracker,
@@ -1348,188 +1410,158 @@ class AdversarialModel(tf.keras.Model):
 
 
 
-def train_dnn():
-    input_folder = "DNN_Datasets/Dataset_2025-03-28-12-49-16"
-    yaml_list = [fname for fname in os.listdir(input_folder) if fname.startswith('batch_config_parity')]
+def train_dnn(setup, input_folder, output_folder, config_dict, val_config_dict):
+  batch_size = config_dict['meta_data']['batch_dict']['batch_size']
+  val_batch_size = val_config_dict['meta_data']['batch_dict']['batch_size']
 
-    modelname_parity = []
+  input_file_name = os.path.join(input_folder, config_dict['meta_data']['input_filename'])
+  input_weight_name = os.path.join(input_folder, f"weight{config_dict['meta_data']['input_filename'][5:]}")
 
-    for i, config_yaml in enumerate(yaml_list):
-        config_dict = {}
-        with open(os.path.join(input_folder, config_yaml), 'r') as file:
-            config_dict = yaml.safe_load(file)  
+  input_file_name_val = os.path.join(input_folder, val_config_dict['meta_data']['input_filename'])
+  input_weight_name_val = os.path.join(input_folder, f"weight{val_config_dict['meta_data']['input_filename'][5:]}")
 
-        val_config_dict = {}
-        val_yaml = yaml_list[i+1] if (i+1) != len(yaml_list) else yaml_list[0]
-        with open(os.path.join(input_folder, val_yaml), 'r') as file:
-            val_config_dict = yaml.safe_load(file)  
+  model_name = config_dict['meta_data']['output_DNNname']
+  output_dnn_name = os.path.join(output_folder, model_name)
 
-        batch_size = config_dict['meta_data']['batch_dict']['batch_size']
-        val_batch_size = val_config_dict['meta_data']['batch_dict']['batch_size']
+  dw = DataWrapper()
+  dw.AddInputFeatures(['lep1_pt', 'lep1_phi', 'lep1_eta', 'lep1_mass'])
+  dw.AddInputFeatures(['lep2_pt', 'lep2_phi', 'lep2_eta', 'lep2_mass'])
+  dw.AddInputFeatures(['met_pt', 'met_phi'])
+  dw.AddInputFeaturesList(['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 0)
+  dw.AddInputFeaturesList(['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 1)
+  dw.AddInputFeaturesList(['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 2)
+  dw.AddInputFeaturesList(['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 3)
+  dw.AddHighLevelFeatures([
+                          'HT', 'dR_dilep', 'dR_dibjet', 
+                          'dR_dilep_dibjet', 'dR_dilep_dijet',
+                          'dPhi_lep1_lep2', 'dPhi_jet1_jet2',
+                          'dPhi_MET_dilep', 'dPhi_MET_dibjet',
+                          'min_dR_lep0_jets', 'min_dR_lep1_jets',
+                          'MT', 'MT2_ll', 'MT2_bb', 'MT2_blbl',
+                          'll_mass', 'CosTheta_bb'
+                          ])
 
-        input_file_name = os.path.join(input_folder, config_dict['meta_data']['input_filename'])
-        input_weight_name = os.path.join(input_folder, f"weight{config_dict['meta_data']['input_filename'][5:]}")
+  dw.SetBinary(True)
+  dw.UseParametric(setup['UseParametric'])
+  dw.SetParamList([ 250, 260, 270, 280, 300, 350, 450, 550, 600, 650, 700, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2500, 3000, 4000, 5000 ])
+  dw.SetOutputFolder(output_folder)
 
-        input_file_name_val = os.path.join(input_folder, val_config_dict['meta_data']['input_filename'])
-        input_weight_name_val = os.path.join(input_folder, f"weight{val_config_dict['meta_data']['input_filename'][5:]}")
+  # dw.AddInputLabel('sample_type')
 
+  dw.SetMbbName('bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino')
+  # dw.SetMbbRegionName('adv_target')
 
-        output_folder = "DNN_Models/v22"
-        model_name = config_dict['meta_data']['output_DNNname']
-        output_dnn_name = os.path.join(output_folder, model_name)
+  # Prep a test dw
+  # Must copy before reading file so we can read the test file instead
+  dw_val = copy.deepcopy(dw)
 
+  entry_start = 0
+  # entry_stop = batch_size * 500 # Only load 500 batches for debuging now
 
-
-        dw = DataWrapper()
-        dw.AddInputFeatures(['lep1_pt', 'lep1_phi', 'lep1_eta', 'lep1_mass'])
-        dw.AddInputFeatures(['lep2_pt', 'lep2_phi', 'lep2_eta', 'lep2_mass'])
-        dw.AddInputFeatures(['met_pt', 'met_phi'])
-        dw.AddInputFeaturesList(['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 0)
-        dw.AddInputFeaturesList(['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 1)
-        dw.AddInputFeaturesList(['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 2)
-        dw.AddInputFeaturesList(['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 3)
-        dw.AddHighLevelFeatures([
-                                'HT', 'dR_dilep', 'dR_dibjet', 
-                                'dR_dilep_dibjet', 'dR_dilep_dijet',
-                                'dPhi_lep1_lep2', 'dPhi_jet1_jet2',
-                                'dPhi_MET_dilep', 'dPhi_MET_dibjet',
-                                'min_dR_lep0_jets', 'min_dR_lep1_jets',
-                                'MT', 'MT2_ll', 'MT2_bb', 'MT2_blbl',
-                                'll_mass', 'CosTheta_bb'
-                                ])
-
-
-        dw.SetBinary(True)
-        # dw.UseParametric(True)
-        dw.UseParametric(False)
-        dw.SetParamList([ 250, 260, 270, 280, 300, 350, 450, 550, 600, 650, 700, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2500, 3000, 4000, 5000 ])
-        dw.SetOutputFolder(output_folder)
-
-        # dw.AddInputLabel('sample_type')
-
-        dw.SetMbbName('bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino')
-        # dw.SetMbbRegionName('adv_target')
-
-        # Prep a test dw
-        # Must copy before reading file so we can read the test file instead
-        dw_val = copy.deepcopy(dw)
-
-        dw.ReadFile(input_file_name)
-        dw.ReadWeightFile(input_weight_name)
-        print(config_dict)
-        # dw.DefineTrainTestSet(batch_size, 0.0)
+  # Do you want to make a larger batch? May increase speed
+  entry_stop = None
 
 
-        dw_val.ReadFile(input_file_name_val)
-        dw_val.ReadWeightFile(input_weight_name_val)
-        # dw_val.DefineTrainTestSet(val_batch_size, 0.0)
+  dw.ReadFile(input_file_name, entry_start=entry_start, entry_stop=entry_stop)
+  dw.ReadWeightFile(input_weight_name, entry_start=entry_start, entry_stop=entry_stop)
+  print(config_dict)
+  # dw.DefineTrainTestSet(batch_size, 0.0)
 
 
-        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
-        os.environ['TF_DETERMINISTIC_OPS'] = '1'
-        tf.random.set_seed(42)
+  dw_val.ReadFile(input_file_name_val, entry_start=entry_start, entry_stop=entry_stop)
+  dw_val.ReadWeightFile(input_weight_name_val, entry_start=entry_start, entry_stop=entry_stop)
+  # dw_val.DefineTrainTestSet(val_batch_size, 0.0)
 
 
-        setup = {
-            'learning_rate': 0.0001,
-            'adv_learning_rate': 0.00001,
-            'weight_decay': 0.04,
-            'adv_weight_decay': 0.004,
-            'adv_grad_factor': 1.0, #0.7
-            'class_grad_factor': 0.01,
-            'common_activation': 'tanh', #'relu'
-            'class_activation': 'tanh', #'relu'
-            'adv_activation': 'relu', #'relu'
-            'use_batch_norm': False,
-            'dropout': 0.0,
-            'n_common_layers': 10,
-            'n_common_units': 256,
-            'n_class_layers': 3,
-            'n_class_units': 128,
-            'n_adv_layers': 6,
-            'n_adv_units': 128,
-            'n_epochs': 20,
-            'patience': 100,
-            'apply_common_gradients': True,
-        }
+  os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+  os.environ['TF_DETERMINISTIC_OPS'] = '1'
+  tf.random.set_seed(42)
 
 
-        model = AdversarialModel(setup)
-        model.compile(loss=None,
-                    # optimizer=tf.keras.optimizers.AdamW(learning_rate=setup['learning_rate'],
-                    #                                     weight_decay=setup['weight_decay']))
-                    optimizer=tf.keras.optimizers.Nadam(learning_rate=setup['learning_rate'],
-                                                        weight_decay=setup['weight_decay']
-                    )
-        )
+  model = AdversarialModel(setup)
+  model.compile(loss=None,
+              # optimizer=tf.keras.optimizers.AdamW(learning_rate=setup['learning_rate'],
+              #                                     weight_decay=setup['weight_decay']))
+              optimizer=tf.keras.optimizers.Nadam(learning_rate=setup['learning_rate'],
+                                                  weight_decay=setup['weight_decay']
+              )
+  )
+
+  model(dw.features)
+
+  model.summary()
+
+  batch_size = 10*batch_size
+  train_tf_dataset = tf.data.Dataset.from_tensor_slices((dw.features, (tf.one_hot(dw.class_target, 2), dw.adv_target, dw.class_weight, dw.adv_weight))).batch(batch_size, drop_remainder=True)
+
+  val_batch_size = 10*val_batch_size
+  val_tf_dataset = tf.data.Dataset.from_tensor_slices((dw_val.features, (tf.one_hot(dw_val.class_target, 2), dw_val.adv_target, dw_val.class_weight, dw_val.adv_weight))).batch(val_batch_size, drop_remainder=True)
 
 
-        model(dw.features)
-
-        model.summary()
-
-        train_tf_dataset = tf.data.Dataset.from_tensor_slices((dw.features, (tf.one_hot(dw.class_target, 2), dw.adv_target, dw.class_weight, dw.adv_weight))).batch(batch_size)
-
-        val_tf_dataset = tf.data.Dataset.from_tensor_slices((dw_val.features, (tf.one_hot(dw_val.class_target, 2), dw_val.adv_target, dw_val.class_weight, dw_val.adv_weight))).batch(val_batch_size)
+  def save_predicate(model, logs):
+      return (abs(logs['val_adv_accuracy'] - 0.5) < 0.001) and (logs['val_adv_accuracy'] != 0.5) # Add not 0.5 requirement to avoid always same guess
 
 
-        def save_predicate(model, logs):
-            return abs(logs['val_adv_accuracy'] - 0.5) < 0.001
-
-
-        input_shape = [None, dw.features.shape[1]]
-        input_signature = [tf.TensorSpec(input_shape, tf.double, name='x')]
-        callbacks = [
-            ModelCheckpoint(output_dnn_name, verbose=1, monitor="val_class_loss", mode='min', min_rel_delta=1e-3,
-                            patience=setup['patience'], save_callback=None, predicate=save_predicate, input_signature=input_signature),
-            tf.keras.callbacks.CSVLogger(f'{output_dnn_name}_training_log.csv', append=True),
-            EpochCounterCallback(),
-            # AdvOnlyCallback(train_tf_dataset, nSteps=2, TrackerWindowSize=2, on_batch=True, on_epoch=False),
-            # AdvOnlyCallback(train_tf_dataset, nSteps=500, TrackerWindowSize=100, on_batch=False, on_epoch=True),
-        ]
+  input_shape = [None, dw.features.shape[1]]
+  input_signature = [tf.TensorSpec(input_shape, tf.double, name='x')]
+  callbacks = [
+      ModelCheckpoint(output_dnn_name, verbose=1, monitor="val_class_loss", mode='min', min_rel_delta=1e-3,
+                      patience=setup['patience'], save_callback=None, predicate=save_predicate, input_signature=input_signature),
+      tf.keras.callbacks.CSVLogger(f'{output_dnn_name}_training_log.csv', append=True),
+      EpochCounterCallback(),
+      AdvOnlyCallback(train_tf_dataset, nSteps=60, TrackerWindowSize=10, on_batch=True, on_epoch=False, continue_training=setup['continue_training'], quiet=False),
+      # AdvOnlyCallback(train_tf_dataset, nSteps=5000, TrackerWindowSize=100, on_batch=False, on_epoch=True, skip_epoch0=False, quiet=False),
+  ]
 
 
 
-        print("Save model configuration")
-        modelname_parity.append([model_name, config_dict['meta_data']['iterate_cut']])
-        features_config = {
-            'features': dw.feature_names,
-            'listfeatures': dw.listfeature_names,
-            'highlevelfeatures': dw.highlevelfeatures_names,
-            'use_parametric': dw.use_parametric,
-            'modelname_parity': modelname_parity,
-            'parametric_list': dw.param_list,
-            'model_setup': setup,
-        }
-        
-        with open(os.path.join(dw.output_folder, 'dnn_config.yaml'), 'w') as file:
-            yaml.dump(features_config, file)
+  print("Save model configuration")
+  modelname_parity.append([model_name, config_dict['meta_data']['iterate_cut']])
+  features_config = {
+      'features': dw.feature_names,
+      'listfeatures': dw.listfeature_names,
+      'highlevelfeatures': dw.highlevelfeatures_names,
+      'use_parametric': dw.use_parametric,
+      'modelname_parity': modelname_parity,
+      'parametric_list': dw.param_list,
+      'model_setup': setup,
+      'nClasses': 2,
+      'nParity': 4,
+  }
+  
+  with open(os.path.join(dw.output_folder, 'dnn_config.yaml'), 'w') as file:
+      yaml.dump(features_config, file)
 
 
-        print("Fit model")
-        history = model.fit(
-            train_tf_dataset,
-            validation_data=val_tf_dataset,
-            verbose=1,
-            epochs=setup['n_epochs'],
-            shuffle=False,
-            callbacks=callbacks,
-        )
-
-
-        model.save(f"{output_dnn_name}.keras")
-
-        input_shape = [None, dw.features.shape[1]]
-        input_signature = [tf.TensorSpec(input_shape, tf.double, name='x')]
-        onnx_model, _ = tf2onnx.convert.from_keras(model, input_signature, opset=13)
-        onnx.save(onnx_model, f"{output_dnn_name}.onnx")
-
-
-        return
+  if setup['continue_training']:
+    model.load_weights(setup['continue_model'], skip_mismatch=True)
 
 
 
-def adv_only_training(model_name, model_config, train_file, train_weight, test_file, test_weight, batch_size=1000):
+  print("Fit model")
+  history = model.fit(
+      train_tf_dataset,
+      validation_data=val_tf_dataset,
+      verbose=1,
+      epochs=setup['n_epochs'],
+      shuffle=False,
+      callbacks=callbacks,
+  )
+
+
+  model.save(f"{output_dnn_name}.keras")
+
+  input_shape = [None, dw.features.shape[1]]
+  input_signature = [tf.TensorSpec(input_shape, tf.double, name='x')]
+  onnx_model, _ = tf2onnx.convert.from_keras(model, input_signature, opset=13)
+  onnx.save(onnx_model, f"{output_dnn_name}.onnx")
+
+
+  return
+
+
+
+def adv_only_training(model_name, model_config, train_file, train_weight, test_file, test_weight, nParity, batch_size=1000):
 
   print("Can I just continue training the same model?")
 
@@ -1578,7 +1610,8 @@ def adv_only_training(model_name, model_config, train_file, train_weight, test_f
 
   setup2 = dnnConfig['model_setup']
   setup2['apply_common_gradients'] = False
-  setup2['adv_learning_rate'] = 0.00001
+  setup2['adv_learning_rate'] = setup2['adv_learning_rate'] * 0.1
+  setup2['n_epochs'] = 50
 
   model2 = AdversarialModel(setup2)
   model2.compile(loss=None,
@@ -1599,17 +1632,19 @@ def adv_only_training(model_name, model_config, train_file, train_weight, test_f
   #   print(f"On layer {i} name {layer.name}")
   #   print(layer.get_config(), layer.get_weights())
 
-  for layer in model2.layers:
-      layer_name = layer.name
-      if not layer_name.startswith("adv"):
-         print(f"Not an adv layer {layer_name}")
-         continue
+  reset_adv_weights = False
+  if reset_adv_weights:
+    for layer in model2.layers:
+        layer_name = layer.name
+        if not layer_name.startswith("adv"):
+          print(f"Not an adv layer {layer_name}")
+          continue
 
-      if not isinstance(layer, tf.keras.layers.Dense):
-          raise ValueError(f"Layer '{layer_name}' is not a Dense layer.")
-      kernel_weights = layer.kernel_initializer(layer.kernel.shape)
-      bias_weights = layer.bias_initializer(layer.bias.shape)
-      layer.set_weights([kernel_weights, bias_weights])
+        if not isinstance(layer, tf.keras.layers.Dense):
+            raise ValueError(f"Layer '{layer_name}' is not a Dense layer.")
+        kernel_weights = layer.kernel_initializer(layer.kernel.shape)
+        bias_weights = layer.bias_initializer(layer.bias.shape)
+        layer.set_weights([kernel_weights, bias_weights])
 
 
   # for i, layer in enumerate(model2.layers):
@@ -1698,30 +1733,84 @@ def validate_model(model_name, model_config, validation_file, validation_weight,
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Create TrainTest Files for DNN.')
-    #parser.add_argument('--config-folder', required=True, type=str, help="Config Folder from Step1")
+    parser.add_argument('--nParity', required=False, type=int, default=None, help="nParity number to train on")
 
     args = parser.parse_args()
 
-    model = train_dnn()
+    nParity = args.nParity
+    print(f"We have parity {nParity}")
 
-    model_name = f"DNN_Models/v22/ResHH_Classifier_parity0/epoch_18.keras"
-    model_config = "DNN_Models/v22/dnn_config.yaml"
-    train_file = f"DNN_Datasets/Dataset_2025-03-28-12-49-16/batchfile0.root"
-    train_weight = f"DNN_Datasets/Dataset_2025-03-28-12-49-16/weightfile0.root"
-    test_file = f"DNN_Datasets/Dataset_2025-03-28-12-49-16/batchfile1.root"
-    test_weight = f"DNN_Datasets/Dataset_2025-03-28-12-49-16/weightfile1.root"
-    # adv_only_training(model_name, model_config, train_file, train_weight, test_file, test_weight)
+    setup = {
+        'learning_rate': 0.0001,
+        'adv_learning_rate': 0.0001,
+        'weight_decay': 0.04,
+        'adv_weight_decay': 0.004,
+        'adv_grad_factor': 1.0, #0.7
+        'class_grad_factor': 0.001,
+        'common_activation': 'tanh', #'relu'
+        'class_activation': 'tanh', #'relu'
+        'adv_activation': 'relu', #'relu'
+        'use_batch_norm': False,
+        'dropout': 0.0,
+        'n_common_layers': 10,
+        'n_common_units': 256,
+        'n_class_layers': 5,
+        'n_class_units': 128,
+        'n_adv_layers': 5,
+        'n_adv_units': 128,
+        'n_epochs': 200,
+        'patience': 100,
+        'apply_common_gradients': True,
+        'UseParametric': False,
+        'continue_training': False,
+        'continue_model': None,
+    }
 
-    # model_name = f"DNN_Models/v22/ResHH_Classifier_parity0/epoch_20_step2.onnx"
-    model_name = f"DNN_Models/v22/ResHH_Classifier_parity0/epoch_18.onnx"
-    # validate_model(model_name, model_config, test_file, test_weight, 1)
+    input_folder = "DNN_Datasets/Dataset_2025-03-28-12-49-16"
+    output_folder = "DNN_Models/v29"
 
 
-    # for i in range(4):
-    #   j = i+1 if i != 3 else 0
-    #   model_name = f"DNN_Models/v16/ResHH_Classifier_parity{i}/"
-    #   model_config = "DNN_Models/v16/dnn_config.yaml"
-    #   validation_file = f"DNN_Datasets/Dataset_2025-03-28-12-49-16/batchfile{j}.root"
-    #   weight_file = f"DNN_Datasets/Dataset_2025-03-28-12-49-16/weightfile{j}.root"
-    #   validate_model(model_name, model_config, validation_file, weight_file, j)
-    #   break
+    #290258-02052
+    yaml_list = [fname for fname in os.listdir(input_folder) if fname.startswith('batch_config_parity')]
+
+    modelname_parity = []
+
+    for i, config_yaml in enumerate(yaml_list):
+        if nParity != None:
+           if i != nParity:
+              continue
+        print(f"Training on nParity {i}")
+        config_dict = {}
+        with open(os.path.join(input_folder, config_yaml), 'r') as file:
+            config_dict = yaml.safe_load(file)  
+
+        val_config_dict = {}
+        val_yaml = yaml_list[i+1] if (i+1) != len(yaml_list) else yaml_list[0]
+        with open(os.path.join(input_folder, val_yaml), 'r') as file:
+            val_config_dict = yaml.safe_load(file)  
+
+        model = train_dnn(setup, input_folder, output_folder, config_dict, val_config_dict)
+
+        # We have nParity {nParity}, now lets try to learn the adv only part on this model
+        first_pass = True
+        for j in range(4):
+          if j == i: continue
+
+          model_name = os.path.join(output_folder, f'ResHH_Classifier_parity{i}', 'best.keras')
+          model_config = os.path.join(output_folder, 'dnn_config.yaml')
+          train_file = os.path.join(input_folder, f'batchfile{i}.root')
+          train_weight = os.path.join(input_folder, f'weightfile{i}.root')
+          test_file = os.path.join(input_folder, f'batchfile{j}.root')
+          test_weight = os.path.join(input_folder, f'weightfile{j}.root')
+          if first_pass:
+            adv_only_training(model_name, model_config, train_file, train_weight, test_file, test_weight, j)
+            first_pass = False
+
+          model_name = os.path.join(output_folder, f'ResHH_Classifier_parity{i}', 'best.onnx')
+          validate_model(model_name, model_config, test_file, test_weight, j)
+          model_name = os.path.join(output_folder, f'ResHH_Classifier_parity{i}', f'best_step2.onnx')
+          validate_model(model_name, model_config, test_file, test_weight, j)
+
+
+
+thread.join()

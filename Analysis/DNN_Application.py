@@ -100,6 +100,15 @@ def run_inference_for_tree(tree_name, rdf, models, globalConfig, dnnConfig, outp
     print(load_features)
 
 
+    nClasses = dnnConfig['nClasses'] if 'nClasses' in dnnConfig.keys() else 3
+    nParity = dnnConfig['nParity'] if 'nParity' in dnnConfig.keys() else 4
+
+    use_parametric = dnnConfig['use_parametric']
+    param_mass_list = [250, 260, 270, 280, 300, 350, 450, 550, 600, 650, 700, 800, 1000 ]
+
+    if not use_parametric:
+        param_mass_list = [0]
+
     def run_inference_and_save(rdf_filtered):
         # This rdf thing is so horrible with the jet branch being a vector
         # It is actually better to just save the thing and then re open the root file with uproot
@@ -107,17 +116,11 @@ def run_inference_for_tree(tree_name, rdf, models, globalConfig, dnnConfig, outp
         vars_to_save = Utilities.ListToVector(load_features)
         rdf_filtered.Snapshot(f"Events", "test.root", vars_to_save, snapshotOptions)
 
-
         # Now open it with uproot!
         events = uproot.open("test.root")
         branches = events['Events'].arrays(load_features)
 
-        nParity = 4
-        nClasses = 3
-        param_mass_list = [250, 260, 270, 280, 300, 350, 450, 550, 600, 650, 700, 800, 1000 ]
-
         all_predictions = np.zeros((len(param_mass_list), len(branches.event), nParity, nClasses))
-
 
         for parityIdx, [model, parityfunc] in enumerate(models):
             #We want to only apply the 3 models that are NOT trained on this parity
@@ -125,8 +128,6 @@ def run_inference_for_tree(tree_name, rdf, models, globalConfig, dnnConfig, outp
             zeros = np.zeros_like(all_predictions)
 
             sess = ort.InferenceSession(f"{model}.onnx")
-
-
 
             #Get single value array
             array = np.array([getattr(branches, feature_name) for feature_name in features]).transpose()
@@ -147,7 +148,10 @@ def run_inference_for_tree(tree_name, rdf, models, globalConfig, dnnConfig, outp
             #Add parametric mass point to the array
             for param_idx, param_mass in enumerate(param_mass_list):
                 param_array = np.array([[param_mass for x in array]]).transpose()
-                final_array = np.append(array, param_array, axis=1)
+                if use_parametric:
+                    final_array = np.append(array, param_array, axis=1)
+                else:
+                    final_array = array
 
                 # prediction = model.predict(final_array)
                 prediction = sess.run(None, {'x': final_array})[0] # Take only first entry, prediction is [ [Sig, TT, DY], [mBB_SR] ]
