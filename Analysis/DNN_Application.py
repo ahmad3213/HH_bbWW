@@ -221,7 +221,6 @@ if __name__ == "__main__":
     from FLAF.Analysis.HistHelper import *
     from FLAF.Common.Utilities import *
     import Analysis.hh_bbww as analysis
-    from FLAF.Analysis.GetCrossWeights import *
     import time
     parser = argparse.ArgumentParser()
     parser.add_argument('--inFileName', required=True, type=str)
