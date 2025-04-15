@@ -962,12 +962,14 @@ class AdvOnlyCallback(tf.keras.callbacks.Callback):
         yield
 
   def on_batch_end(self, batch, logs=None):
+    if self.nSteps <= 0: return
     if self.model.epoch_counter == 0. and not self.continue_training: return
     if self.on_batch:
       next(self.generator)
     
 
   def on_epoch_end(self, epoch, logs=None):
+    if self.nSteps <= 0: return
     if self.model.epoch_counter == 0. and not self.continue_training: return
     if self.on_epoch:
        next(self.generator)
@@ -1424,26 +1426,31 @@ def train_dnn(setup, input_folder, output_folder, config_dict, val_config_dict):
   output_dnn_name = os.path.join(output_folder, model_name)
 
   dw = DataWrapper()
-  dw.AddInputFeatures(['lep1_pt', 'lep1_phi', 'lep1_eta', 'lep1_mass'])
-  dw.AddInputFeatures(['lep2_pt', 'lep2_phi', 'lep2_eta', 'lep2_mass'])
-  dw.AddInputFeatures(['met_pt', 'met_phi'])
-  dw.AddInputFeaturesList(['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 0)
-  dw.AddInputFeaturesList(['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 1)
-  dw.AddInputFeaturesList(['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 2)
-  dw.AddInputFeaturesList(['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 3)
-  dw.AddHighLevelFeatures([
-                          'HT', 'dR_dilep', 'dR_dibjet', 
-                          'dR_dilep_dibjet', 'dR_dilep_dijet',
-                          'dPhi_lep1_lep2', 'dPhi_jet1_jet2',
-                          'dPhi_MET_dilep', 'dPhi_MET_dibjet',
-                          'min_dR_lep0_jets', 'min_dR_lep1_jets',
-                          'MT', 'MT2_ll', 'MT2_bb', 'MT2_blbl',
-                          'll_mass', 'CosTheta_bb'
-                          ])
+  dw.AddInputFeatures(setup['features'])
+  for list_feature in setup['listfeatures']:
+     dw.AddInputFeaturesList(*list_feature)
+  dw.AddHighLevelFeatures(setup['highlevelfeatures'])
+
+  # dw.AddInputFeatures(['lep1_pt', 'lep1_phi', 'lep1_eta', 'lep1_mass'])
+  # dw.AddInputFeatures(['lep2_pt', 'lep2_phi', 'lep2_eta', 'lep2_mass'])
+  # dw.AddInputFeatures(['met_pt', 'met_phi'])
+  # dw.AddInputFeaturesList(['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 0)
+  # dw.AddInputFeaturesList(['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 1)
+  # dw.AddInputFeaturesList(['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 2)
+  # dw.AddInputFeaturesList(['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 3)
+  # dw.AddHighLevelFeatures([
+  #                         'HT', 'dR_dilep', 'dR_dibjet', 
+  #                         'dR_dilep_dibjet', 'dR_dilep_dijet',
+  #                         'dPhi_lep1_lep2', 'dPhi_jet1_jet2',
+  #                         'dPhi_MET_dilep', 'dPhi_MET_dibjet',
+  #                         'min_dR_lep0_jets', 'min_dR_lep1_jets',
+  #                         'MT', 'MT2_ll', 'MT2_bb', 'MT2_blbl',
+  #                         'll_mass', 'CosTheta_bb'
+  #                         ])
 
   dw.SetBinary(True)
   dw.UseParametric(setup['UseParametric'])
-  dw.SetParamList([ 250, 260, 270, 280, 300, 350, 450, 550, 600, 650, 700, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2500, 3000, 4000, 5000 ])
+  dw.SetParamList(setup['parametric_list'])
   dw.SetOutputFolder(output_folder)
 
   # dw.AddInputLabel('sample_type')
@@ -1491,15 +1498,15 @@ def train_dnn(setup, input_folder, output_folder, config_dict, val_config_dict):
 
   model.summary()
 
-  batch_size = 10*batch_size
+  batch_size = setup['batch_compression_factor']*batch_size
   train_tf_dataset = tf.data.Dataset.from_tensor_slices((dw.features, (tf.one_hot(dw.class_target, 2), dw.adv_target, dw.class_weight, dw.adv_weight))).batch(batch_size, drop_remainder=True)
 
-  val_batch_size = 10*val_batch_size
+  val_batch_size = setup['batch_compression_factor']*val_batch_size
   val_tf_dataset = tf.data.Dataset.from_tensor_slices((dw_val.features, (tf.one_hot(dw_val.class_target, 2), dw_val.adv_target, dw_val.class_weight, dw_val.adv_weight))).batch(val_batch_size, drop_remainder=True)
 
 
   def save_predicate(model, logs):
-      return (abs(logs['val_adv_accuracy'] - 0.5) < 0.001) and (logs['val_adv_accuracy'] != 0.5) # Add not 0.5 requirement to avoid always same guess
+      return (abs(logs['val_adv_accuracy'] - 0.5) < 0.001) # How do we stop the model from always guessing 0.49 or 0.51?
 
 
   input_shape = [None, dw.features.shape[1]]
@@ -1509,7 +1516,7 @@ def train_dnn(setup, input_folder, output_folder, config_dict, val_config_dict):
                       patience=setup['patience'], save_callback=None, predicate=save_predicate, input_signature=input_signature),
       tf.keras.callbacks.CSVLogger(f'{output_dnn_name}_training_log.csv', append=True),
       EpochCounterCallback(),
-      AdvOnlyCallback(train_tf_dataset, nSteps=60, TrackerWindowSize=10, on_batch=True, on_epoch=False, continue_training=setup['continue_training'], quiet=False),
+      AdvOnlyCallback(train_tf_dataset, nSteps=setup['adv_submodule_steps'], TrackerWindowSize=setup['adv_submodule_tracker'], on_batch=True, on_epoch=False, continue_training=setup['continue_training'], quiet=False),
       # AdvOnlyCallback(train_tf_dataset, nSteps=5000, TrackerWindowSize=100, on_batch=False, on_epoch=True, skip_epoch0=False, quiet=False),
   ]
 
@@ -1592,8 +1599,9 @@ def adv_only_training(model_name, model_config, train_file, train_weight, test_f
   dw.AddHighLevelFeatures(highlevel_features)
 
   dw.SetBinary(True)
-  dw.UseParametric(False)
+  dw.UseParametric(dnnConfig['use_parametric'])
   dw.SetParamList(parametric_list)
+
 
   dw.SetMbbName('bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino')
 
@@ -1715,6 +1723,7 @@ def validate_model(model_name, model_config, validation_file, validation_weight,
       dw.AddInputFeaturesList(list_features_dict[list_feature_key], int(list_feature_key))
     dw.AddHighLevelFeatures(highlevel_features)
 
+
     dw.SetBinary(True)
     dw.UseParametric(False)
     dw.SetParamList(parametric_list)
@@ -1734,15 +1743,18 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Create TrainTest Files for DNN.')
     parser.add_argument('--nParity', required=False, type=int, default=None, help="nParity number to train on")
+    parser.add_argument('--output-folder', required=False, type=str, default='tmp', help="Output folder name")
 
     args = parser.parse_args()
 
     nParity = args.nParity
     print(f"We have parity {nParity}")
+    output_folder = args.output_folder
+  
 
     setup = {
-        'learning_rate': 0.0001,
-        'adv_learning_rate': 0.0001,
+        'learning_rate': 0.000001,
+        'adv_learning_rate': 0.00001,
         'weight_decay': 0.04,
         'adv_weight_decay': 0.004,
         'adv_grad_factor': 1.0, #0.7
@@ -1758,16 +1770,42 @@ if __name__ == '__main__':
         'n_class_units': 128,
         'n_adv_layers': 5,
         'n_adv_units': 128,
-        'n_epochs': 200,
+        'n_epochs': 100,
         'patience': 100,
         'apply_common_gradients': True,
-        'UseParametric': False,
+        'UseParametric': True,
+        'parametric_list': [ 250, 260, 270, 280, 300, 350, 450, 550, 600, 650, 700, 800, 1000, 1200, 1400, 1600, 1800, 2000, 2500, 3000, 4000, 5000 ],
         'continue_training': False,
         'continue_model': None,
+
+        'batch_compression_factor': 1,
+        'adv_submodule_steps': 0,
+        'adv_submodule_tracker': 10,
+
+        'features': [
+          'lep1_pt', 'lep1_phi', 'lep1_eta', 'lep1_mass',
+          'lep2_pt', 'lep2_phi', 'lep2_eta', 'lep2_mass', 
+          'met_pt', 'met_phi'
+        ],
+        'listfeatures': [
+          [['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 0],
+          [['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 1],
+          [['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 2],
+          [['centralJet_pt', 'centralJet_phi', 'centralJet_eta', 'centralJet_mass'], 3],
+        ],
+        'highlevelfeatures': [
+          'HT', 'dR_dilep', 'dR_dibjet', 
+          'dR_dilep_dibjet', 'dR_dilep_dijet',
+          'dPhi_lep1_lep2', 'dPhi_jet1_jet2',
+          'dPhi_MET_dilep', 'dPhi_MET_dibjet',
+          'min_dR_lep0_jets', 'min_dR_lep1_jets',
+          'MT', 'MT2_ll', 'MT2_bb', 'MT2_blbl',
+          'll_mass', 'CosTheta_bb'
+        ],
     }
 
     input_folder = "DNN_Datasets/Dataset_2025-03-28-12-49-16"
-    output_folder = "DNN_Models/v29"
+    output_folder = os.path.join("DNN_Models", output_folder)
 
 
     #290258-02052
