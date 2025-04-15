@@ -156,30 +156,35 @@ def run_inference_for_tree(tree_name, rdf, models, globalConfig, dnnConfig, outp
                     final_array = array
 
                 # prediction = model.predict(final_array)
-                prediction = sess.run(None, {'x': final_array})[0] # Take only first entry, prediction is [ [Sig, TT, DY], [mBB_SR] ]
+                prediction = sess.run(None, {'x': final_array}) # Take only first entry, prediction is [ [Sig, TT, DY], [mBB_SR] ]
+
+                class_prediction = prediction[0]
+                adv_prediction = prediction[1]
 
                 # Now we need to set the trained parity to 0
+                # But if there is only one model, then skip parity
                 event_branch = np.expand_dims(branches.event, axis=-1)
                 parity_filter = np.repeat(event_branch, nClasses, axis=-1)
-                prediction = np.where(
-                    parity_filter % nParity != parityIdx,
-                    prediction,
-                    0.0
-                )
+                if nParity != 1:
+                    class_prediction = np.where(
+                        parity_filter % nParity != parityIdx,
+                        class_prediction,
+                        0.0
+                    )
 
-                all_predictions[param_idx,:,parityIdx,:] = prediction
+                all_predictions[param_idx,:,parityIdx,:] = class_prediction
 
 
         all_predictions = np.sum(all_predictions, axis=2) # Need to take average of the existing parity branches
-        all_predictions = all_predictions/(nParity-1) # So we want to divide by nParity-1 (4 parity -> train with 1, apply with remaining 3)
+        if nParity != 1: all_predictions = all_predictions/(nParity-1) # So we want to divide by nParity-1 (4 parity -> train with 1, apply with remaining 3)
 
 
         # Last save the branches
         for param_idx, param_mass in enumerate(param_mass_list):
-            prediction = all_predictions[param_idx,:,:] # Now we want to get the individual param masses predictions for filling
+            this_param_prediction = all_predictions[param_idx,:,:] # Now we want to get the individual param masses predictions for filling
 
             for class_idx, class_name in enumerate(class_names_list):
-                branches[f'dnn_M{param_mass}_{class_name}'] = prediction.transpose()[class_idx]
+                branches[f'dnn_M{param_mass}_{class_name}'] = this_param_prediction.transpose()[class_idx]
 
                 # branches[f'dnn_M{param_mass}_Signal'] = prediction.transpose()[0]
                 # branches[f'dnn_M{param_mass}_TT'] = prediction.transpose()[1]
