@@ -1,43 +1,75 @@
 ########## lep1 BEGIN ##########
 lep1_type:
   x_bins: "3|0:3"
-  x_title: lep1_type (Our first plot!)
+  x_title: lep1_type
   y_title: Events
   use_log_y: False
-  max_y_sf: 1.2
+  max_y_sf: 1.5
   divide_by_bin_width: False
 
 lep1_phi:
   x_bins: "50|-3.2:3.2"
+  #x_bins: [-3.2, -2.88, -2.56, -2.24, -1.92, -1.6, -1.28, -0.96, -0.64, -0.32, 0.0, 0.32, 0.64, 0.96, 1.28, 1.6, 1.92, 2.24, 2.56, 2.88, 3.2]
   x_title: lep1_phi
   y_title: Events
   use_log_y: False
-  max_y_sf: 1.2
+  max_y_sf: 1.5
   divide_by_bin_width: False
 
 lep1_eta:
-  #x_bins: "50|-2.5:2.5" #For now in HistPlotter, the getNewBins() function requires integers? Dumb!
-  x_bins: [-2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5]
+  x_bins: "50|-2.5:2.5" #For now in HistPlotter, the getNewBins() function requires integers? Dumb!
+  #x_bins: [-2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5]
   x_title: lep1_eta
   y_title: Events
   use_log_y: False
-  max_y_sf: 1.2
+  max_y_sf: 1.5
   divide_by_bin_width: False
 
 lep1_pt:
-  x_bins: "50|0:500"
+  x_bins: "50|20:500"
   x_title: lep1_pt [GeV]
   y_title: Events
   use_log_y: False
-  max_y_sf: 1.2
+  max_y_sf: 1.5
   divide_by_bin_width: False
-
+lep1_Muon_pfRelIso04_all:
+  x_bins: "50|0:0.5"
+  #x_bins: [0.0, 0.03, 0.05, 0.08, 0.1, 0.13, 0.15, 0.18, 0.2, 0.23, 0.25, 0.28, 0.3, 0.33, 0.35, 0.38, 0.4, 0.43, 0.45, 0.48, 0.5]
+  x_title: Muon1_Iso [GeV]
+  y_title: Events
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+lep2_Muon_pfRelIso04_all:
+  x_bins: "50|0:0.5"
+  #x_bins: [0.0, 0.03, 0.05, 0.08, 0.1, 0.13, 0.15, 0.18, 0.2, 0.23, 0.25, 0.28, 0.3, 0.33, 0.35, 0.38, 0.4, 0.43, 0.45, 0.48, 0.5]
+  x_title: Muon2_Iso [GeV]
+  y_title: Events
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+lep1_Electron_miniPFRelIso_all:
+  x_bins: "50|0:0.5"
+  #x_bins: [0.0, 0.03, 0.05, 0.08, 0.1, 0.13, 0.15, 0.18, 0.2, 0.23, 0.25, 0.28, 0.3, 0.33, 0.35, 0.38, 0.4, 0.43, 0.45, 0.48, 0.5]
+  x_title: Ele1_Iso [GeV]
+  y_title: Events
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+lep2_Electron_miniPFRelIso_all:
+  x_bins: "50|0:0.5"
+  #x_bins: [0.0, 0.03, 0.05, 0.08, 0.1, 0.13, 0.15, 0.18, 0.2, 0.23, 0.25, 0.28, 0.3, 0.33, 0.35, 0.38, 0.4, 0.43, 0.45, 0.48, 0.5]
+  x_title: Ele2_Iso [GeV]
+  y_title: Events
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
 lep1_charge:
   x_bins: "5|-2.5:2.5"
   x_title: lep1_charge
   y_title: Events
   use_log_y: False
-  max_y_sf: 1.2
+  max_y_sf: 1.5
   divide_by_bin_width: False
 
 
@@ -45,35 +77,36 @@ lep1_charge:
 ########## lep2 BEGIN ##########
 lep2_type:
   x_bins: "3|0:3"
-  x_title: lep2_type (Our first plot!)
+  x_title: lep2_type
   y_title: Events
   use_log_y: False
-  max_y_sf: 1.2
+  max_y_sf: 1.5
   divide_by_bin_width: False
 
 lep2_phi:
   x_bins: "50|-3.2:3.2"
+  #x_bins: [-3.2, -2.6, -2.0, -1.4, -0.8, -0.2, 0.4, 1.0, 1.6, 2.2, 2.8, 3.2]
   x_title: lep2_phi
   y_title: Events
   use_log_y: False
-  max_y_sf: 1.2
+  max_y_sf: 1.5
   divide_by_bin_width: False
 
 lep2_eta:
-  #x_bins: "50|-2.5:2.5"
-  x_bins: [-2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5]
+  x_bins: "50|-2.5:2.5"
+  #x_bins: [-2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5]
   x_title: lep2_eta
   y_title: Events
   use_log_y: False
-  max_y_sf: 1.2
+  max_y_sf: 1.5
   divide_by_bin_width: False
 
 lep2_pt:
-  x_bins: "50|0:500"
+  x_bins: "50|15:500"
   x_title: lep2_pt [GeV]
   y_title: Events
   use_log_y: False
-  max_y_sf: 1.2
+  max_y_sf: 1.5
   divide_by_bin_width: False
 
 lep2_charge:
@@ -81,7 +114,7 @@ lep2_charge:
   x_title: lep2_charge
   y_title: Events
   use_log_y: False
-  max_y_sf: 1.2
+  max_y_sf: 1.5
   divide_by_bin_width: False
 
 bjet1_btagPNetB:
@@ -90,7 +123,7 @@ bjet1_btagPNetB:
   x_title: bjet1 btagPNetB
   y_title: Events
   use_log_y: False
-  max_y_sf: 1.2
+  max_y_sf: 1.5
   divide_by_bin_width: False
 
 bjet2_btagPNetB:
@@ -99,175 +132,21 @@ bjet2_btagPNetB:
   x_title: bjet2 btagPNetB
   y_title: Events
   use_log_y: False
-  max_y_sf: 1.2
-  divide_by_bin_width: False
-
-
-dnn_M250_Signal:
-  x_bins: [0.  , 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1 ,
-       0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2 , 0.21,
-       0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3 , 0.31, 0.32,
-       0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4 , 0.41, 0.42, 0.43,
-       0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5 , 0.51, 0.52, 0.53, 0.54,
-       0.55, 0.56, 0.57, 0.58, 0.59, 0.6 , 0.61, 0.62, 0.63, 0.64, 0.65,
-       0.66, 0.67, 0.68, 0.69, 0.7 , 0.71, 0.72, 0.73, 0.74, 0.75, 0.76,
-       0.77, 0.78, 0.79, 0.8 , 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87,
-       0.88, 0.89, 0.9 , 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98,
-       0.99, 1.  ]
-  x_title: DNN M250 Signal
-  y_title: Events
-  use_log_y: True
-  max_y_sf: 10.0
-  divide_by_bin_width: False
-
-dnn_M260_Signal:
-  x_bins: [0.  , 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1 ,
-       0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2 , 0.21,
-       0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3 , 0.31, 0.32,
-       0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4 , 0.41, 0.42, 0.43,
-       0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5 , 0.51, 0.52, 0.53, 0.54,
-       0.55, 0.56, 0.57, 0.58, 0.59, 0.6 , 0.61, 0.62, 0.63, 0.64, 0.65,
-       0.66, 0.67, 0.68, 0.69, 0.7 , 0.71, 0.72, 0.73, 0.74, 0.75, 0.76,
-       0.77, 0.78, 0.79, 0.8 , 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87,
-       0.88, 0.89, 0.9 , 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98,
-       0.99, 1.  ]
-  x_title: DNN M260 Signal
-  y_title: Events
-  use_log_y: True
-  max_y_sf: 10.0
-  divide_by_bin_width: False
-
-dnn_M270_Signal:
-  x_bins: [0.  , 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1 ,
-       0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2 , 0.21,
-       0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3 , 0.31, 0.32,
-       0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4 , 0.41, 0.42, 0.43,
-       0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5 , 0.51, 0.52, 0.53, 0.54,
-       0.55, 0.56, 0.57, 0.58, 0.59, 0.6 , 0.61, 0.62, 0.63, 0.64, 0.65,
-       0.66, 0.67, 0.68, 0.69, 0.7 , 0.71, 0.72, 0.73, 0.74, 0.75, 0.76,
-       0.77, 0.78, 0.79, 0.8 , 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87,
-       0.88, 0.89, 0.9 , 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98,
-       0.99, 1.  ]
-  x_title: DNN M270 Signal
-  y_title: Events
-  use_log_y: True
-  max_y_sf: 10.0
-  divide_by_bin_width: False
-
-dnn_M280_Signal:
-  x_bins: [0.  , 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1 ,
-       0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2 , 0.21,
-       0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3 , 0.31, 0.32,
-       0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4 , 0.41, 0.42, 0.43,
-       0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5 , 0.51, 0.52, 0.53, 0.54,
-       0.55, 0.56, 0.57, 0.58, 0.59, 0.6 , 0.61, 0.62, 0.63, 0.64, 0.65,
-       0.66, 0.67, 0.68, 0.69, 0.7 , 0.71, 0.72, 0.73, 0.74, 0.75, 0.76,
-       0.77, 0.78, 0.79, 0.8 , 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87,
-       0.88, 0.89, 0.9 , 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98,
-       0.99, 1.  ]
-  x_title: DNN M280 Signal
-  y_title: Events
-  use_log_y: True
-  max_y_sf: 10.0
+  max_y_sf: 1.5
   divide_by_bin_width: False
 
 dnn_M300_Signal:
-  x_bins: [0.  , 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1 ,
-       0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2 , 0.21,
-       0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3 , 0.31, 0.32,
-       0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4 , 0.41, 0.42, 0.43,
-       0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5 , 0.51, 0.52, 0.53, 0.54,
-       0.55, 0.56, 0.57, 0.58, 0.59, 0.6 , 0.61, 0.62, 0.63, 0.64, 0.65,
-       0.66, 0.67, 0.68, 0.69, 0.7 , 0.71, 0.72, 0.73, 0.74, 0.75, 0.76,
-       0.77, 0.78, 0.79, 0.8 , 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87,
-       0.88, 0.89, 0.9 , 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98,
-       0.99, 1.  ]
+  x_bins: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
   x_title: DNN M300 Signal
   y_title: Events
   use_log_y: True
   max_y_sf: 10.0
   divide_by_bin_width: False
 
-dnn_M350_Signal:
-  x_bins: [0.  , 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1 ,
-       0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2 , 0.21,
-       0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3 , 0.31, 0.32,
-       0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4 , 0.41, 0.42, 0.43,
-       0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5 , 0.51, 0.52, 0.53, 0.54,
-       0.55, 0.56, 0.57, 0.58, 0.59, 0.6 , 0.61, 0.62, 0.63, 0.64, 0.65,
-       0.66, 0.67, 0.68, 0.69, 0.7 , 0.71, 0.72, 0.73, 0.74, 0.75, 0.76,
-       0.77, 0.78, 0.79, 0.8 , 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87,
-       0.88, 0.89, 0.9 , 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98,
-       0.99, 1.  ]
-  x_title: DNN M350 Signal
-  y_title: Events
-  use_log_y: True
-  max_y_sf: 10.0
-  divide_by_bin_width: False
 
 dnn_M450_Signal:
-  x_bins: [0.  , 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1 ,
-       0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2 , 0.21,
-       0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3 , 0.31, 0.32,
-       0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4 , 0.41, 0.42, 0.43,
-       0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5 , 0.51, 0.52, 0.53, 0.54,
-       0.55, 0.56, 0.57, 0.58, 0.59, 0.6 , 0.61, 0.62, 0.63, 0.64, 0.65,
-       0.66, 0.67, 0.68, 0.69, 0.7 , 0.71, 0.72, 0.73, 0.74, 0.75, 0.76,
-       0.77, 0.78, 0.79, 0.8 , 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87,
-       0.88, 0.89, 0.9 , 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98,
-       0.99, 1.  ]
+  x_bins: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
   x_title: DNN M450 Signal
-  y_title: Events
-  use_log_y: True
-  max_y_sf: 10.0
-  divide_by_bin_width: False
-
-dnn_M550_Signal:
-  x_bins: [0.  , 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1 ,
-       0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2 , 0.21,
-       0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3 , 0.31, 0.32,
-       0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4 , 0.41, 0.42, 0.43,
-       0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5 , 0.51, 0.52, 0.53, 0.54,
-       0.55, 0.56, 0.57, 0.58, 0.59, 0.6 , 0.61, 0.62, 0.63, 0.64, 0.65,
-       0.66, 0.67, 0.68, 0.69, 0.7 , 0.71, 0.72, 0.73, 0.74, 0.75, 0.76,
-       0.77, 0.78, 0.79, 0.8 , 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87,
-       0.88, 0.89, 0.9 , 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98,
-       0.99, 1.  ]
-  x_title: DNN M550 Signal
-  y_title: Events
-  use_log_y: True
-  max_y_sf: 10.0
-  divide_by_bin_width: False
-
-dnn_M600_Signal:
-  x_bins: [0.  , 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1 ,
-       0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2 , 0.21,
-       0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3 , 0.31, 0.32,
-       0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4 , 0.41, 0.42, 0.43,
-       0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5 , 0.51, 0.52, 0.53, 0.54,
-       0.55, 0.56, 0.57, 0.58, 0.59, 0.6 , 0.61, 0.62, 0.63, 0.64, 0.65,
-       0.66, 0.67, 0.68, 0.69, 0.7 , 0.71, 0.72, 0.73, 0.74, 0.75, 0.76,
-       0.77, 0.78, 0.79, 0.8 , 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87,
-       0.88, 0.89, 0.9 , 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98,
-       0.99, 1.  ]
-  x_title: DNN M600 Signal
-  y_title: Events
-  use_log_y: True
-  max_y_sf: 10.0
-  divide_by_bin_width: False
-
-dnn_M650_Signal:
-  x_bins: [0.  , 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1 ,
-       0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2 , 0.21,
-       0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3 , 0.31, 0.32,
-       0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4 , 0.41, 0.42, 0.43,
-       0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5 , 0.51, 0.52, 0.53, 0.54,
-       0.55, 0.56, 0.57, 0.58, 0.59, 0.6 , 0.61, 0.62, 0.63, 0.64, 0.65,
-       0.66, 0.67, 0.68, 0.69, 0.7 , 0.71, 0.72, 0.73, 0.74, 0.75, 0.76,
-       0.77, 0.78, 0.79, 0.8 , 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87,
-       0.88, 0.89, 0.9 , 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98,
-       0.99, 1.  ]
-  x_title: DNN M650 Signal
   y_title: Events
   use_log_y: True
   max_y_sf: 10.0
@@ -275,34 +154,8 @@ dnn_M650_Signal:
 
 
 dnn_M700_Signal:
-  x_bins: [0.  , 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1 ,
-       0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2 , 0.21,
-       0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3 , 0.31, 0.32,
-       0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4 , 0.41, 0.42, 0.43,
-       0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5 , 0.51, 0.52, 0.53, 0.54,
-       0.55, 0.56, 0.57, 0.58, 0.59, 0.6 , 0.61, 0.62, 0.63, 0.64, 0.65,
-       0.66, 0.67, 0.68, 0.69, 0.7 , 0.71, 0.72, 0.73, 0.74, 0.75, 0.76,
-       0.77, 0.78, 0.79, 0.8 , 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87,
-       0.88, 0.89, 0.9 , 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98,
-       0.99, 1.  ]
+  x_bins: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
   x_title: DNN M700 Signal
-  y_title: Events
-  use_log_y: True
-  max_y_sf: 10.0
-  divide_by_bin_width: False
-
-dnn_M800_Signal:
-  x_bins: [0.  , 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1 ,
-       0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2 , 0.21,
-       0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.29, 0.3 , 0.31, 0.32,
-       0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4 , 0.41, 0.42, 0.43,
-       0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5 , 0.51, 0.52, 0.53, 0.54,
-       0.55, 0.56, 0.57, 0.58, 0.59, 0.6 , 0.61, 0.62, 0.63, 0.64, 0.65,
-       0.66, 0.67, 0.68, 0.69, 0.7 , 0.71, 0.72, 0.73, 0.74, 0.75, 0.76,
-       0.77, 0.78, 0.79, 0.8 , 0.81, 0.82, 0.83, 0.84, 0.85, 0.86, 0.87,
-       0.88, 0.89, 0.9 , 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98,
-       0.99, 1.  ]
-  x_title: DNN M800 Signal
   y_title: Events
   use_log_y: True
   max_y_sf: 10.0
@@ -310,27 +163,27 @@ dnn_M800_Signal:
 
 ########## diLep BEGIN ##########
 diLep_mass:
-  x_bins: "100|0:200"
+  x_bins: "200|12:400"
   x_title: diLep mass (mumu)
   y_title: Events
   use_log_y: True
-  max_y_sf: 1.2
+  max_y_sf: 1.5
   divide_by_bin_width: False
 
 Lep1Jet1Jet2_mass:
-  x_bins: "50|0:1000"
+  x_bins: "100|0:1000"
   x_title: Lep1Jet1Jet2 mass
   y_title: Events
   use_log_y: True
-  max_y_sf: 1.2
+  max_y_sf: 1.5
   divide_by_bin_width: False
 
 Lep1Lep2Jet1Jet2_mass:
-  x_bins: "50|0:1000"
+  x_bins: "100|0:1000"
   x_title: Lep1Lep2Jet1Jet2 mass
   y_title: Events
   use_log_y: True
-  max_y_sf: 1.2
+  max_y_sf: 1.5
   divide_by_bin_width: False
 
 MT_tot:
@@ -338,7 +191,7 @@ MT_tot:
   x_title: MT tot
   y_title: Events
   use_log_y: False
-  max_y_sf: 1.2
+  max_y_sf: 1.5
   divide_by_bin_width: False
 
 MT_lep1:
@@ -346,7 +199,7 @@ MT_lep1:
   x_title: MT lep1
   y_title: Events
   use_log_y: False
-  max_y_sf: 1.2
+  max_y_sf: 1.5
   divide_by_bin_width: False
 
 MT_lep2:
@@ -354,5 +207,129 @@ MT_lep2:
   x_title: MT lep2
   y_title: Events
   use_log_y: False
-  max_y_sf: 1.2
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+bb_mass:
+  x_bins: "100|0:300"
+  x_title: m(bb)
+  y_title: Events
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+bb_mass_PNetRegPtRawCorr:
+  x_bins: "100|0:300"
+  x_title: m(bb)_PNetRegPtRawCorr
+  y_title: Events
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino:
+  x_bins: "100|0:300"
+  x_title: m(bb)_RawCorr_RawCorrNeutrino
+  y_title: Events
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+Njets:
+  x_bins: "10|0:10"
+  x_title: Njets
+  y_title: Events
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+bjet1_pt:
+  x_bins: "50|20:500"
+  x_title: bjet1_pt [GeV]
+  y_title: Events
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+bjet2_pt:
+  x_bins: "50|20:500"
+  x_title: bjet2_pt [GeV]
+  y_title: Events
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+HT:
+  x_bins: "100|40:1000"
+  x_title: HT [GeV]
+  y_title: Events
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+dR_dilep:
+  #x_bins: "20|0:2.0"
+  x_bins: [0.0, 0.1, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
+  x_title: "dR between leptons"
+  y_title: "Events"
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+dR_dibjet:
+  #x_bins: "20|0:2.5"
+  x_bins: [0.0, 0.12, 0.25, 0.37, 0.5, 0.62, 0.75, 0.87, 1.0, 1.12, 1.25, 1.37, 1.5, 1.62, 1.75, 1.87, 2.0, 2.12, 2.25, 2.37, 2.5]
+  x_title: "dR between two jets"
+  y_title: "Events"
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+dR_dilep_dibjet:
+  #x_bins: "20|0:3.0"
+  x_bins: [0.0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1.05, 1.2, 1.35, 1.5, 1.65, 1.8, 1.95, 2.1, 2.25, 2.4, 2.55, 2.7, 2.85, 3.0]
+  x_title: "dR between dilepton and dijet system"
+  y_title: "Events"
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+
+dPhi_lep1_lep2:
+  #x_bins: "10|0:3.14"  # Since Δφ ranges from 0 to π
+  x_bins: [0.0, 0.32, 0.64, 0.96, 1.28, 1.6, 1.92, 2.24, 2.56, 2.88, 3.14]
+  x_title: "dPhi between lepton 1 and lepton 2"
+  y_title: "Events"
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+
+dPhi_jet1_jet2:
+  #x_bins: "10|0:3.14"  # Δφ ranges from 0 to π (between two jets)
+  x_bins: [0.0, 0.348, 0.696, 1.044, 1.392, 1.74, 2.088, 2.436, 2.784, 3.14]
+  x_title: "dPhi between jet 1 and jet 2"
+  y_title: "Events"
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+
+dPhi_MET_dilep:
+  #x_bins: "10|0:3.14"  # Δφ between MET and dilepton (usually in range [0, π])
+  x_bins: [0.0, 0.348, 0.696, 1.044, 1.392, 1.74, 2.088, 2.436, 2.784, 3.14]
+  x_title: "dPhi between MET and dilepton system"
+  y_title: "Events"
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+
+dPhi_MET_dibjet:
+  #x_bins: "10|0:3.14"  # Δφ between MET and dibjet system (typically between 0 and π)
+  x_bins: [0.0, 0.348, 0.696, 1.044, 1.392, 1.74, 2.088, 2.436, 2.784, 3.14]
+  x_title: "dPhi between MET and dibjet system"
+  y_title: "Events"
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+
+PuppiMET_pt:
+  x_bins: "30|0:500"  # Adjust the number of bins and range according to your data (e.g., MET can vary from 0 to 500 GeV)
+  x_title: "Puppi MET Transverse Momentum [GeV]"
+  y_title: "Events"
+  use_log_y: True  # MET often spans several orders of magnitude, so a log scale might be useful
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+
+PuppiMET_phi:
+  x_bins: "10|-3.14:3.14"  # The azimuthal angle (phi) typically ranges from -π to +π
+  y_title: "Events"
+  use_log_y: False
+  max_y_sf: 1.5
   divide_by_bin_width: False

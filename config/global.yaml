@@ -162,8 +162,6 @@ vars_to_plot:
   - dPhi_jet1_jet2
   - dPhi_MET_dilep
   - dPhi_MET_dibjet
-  - min_dR_lep0_jets
-  - min_dR_lep1_jets
   - bb_mass
   - bb_mass_PNetRegPtRawCorr
   - bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino

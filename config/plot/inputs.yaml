@@ -8,11 +8,11 @@
     - TT
   title: t#bar{t}
   color: kGreen-3
-- name: W
-  types:
-    - W
-  title: "W #rightarrow l#nu + jets"
-  color: kYellow-7
+# - name: W
+#   types:
+#     - W
+#   title: "W #rightarrow l#nu + jets"
+#   color: kYellow-7
 - name: ST
   types:
     - ST
@@ -23,11 +23,16 @@
     - VV
   title: VV
   color: kGreen
-- name: QCD
+- name: QCDMu
   types:
-    - QCD
-  title: QCD
-  color: kCyan
+    - QCDMu
+  title: QCDMu
+  color: QCDMu
+- name: QCDEM
+  types:
+    - QCDEM
+  title: QCDEM
+  color: QCDEM
 #- name: TTX
 #  title: TTX
 #  color: kCyan
@@ -58,12 +63,27 @@
   #title: "GluGluRadion - 700 GeV"
   #type: signal
   #color: kBlue
-- name: GluGlutoRadiontoHHto2B2Vto2B2L2Nu_M_450
-  title: "GluGluRadion to 2L2Nu - 450 GeV"
-  type: signal
+- name: GluGlutoRadiontoHHto2B2Vto2B2L2Nu_M_260
+  title: "Radion-260 GeV"
   color: kViolet
+  type: signal
   types:
     - signal
+  scale: 1000
+- name: GluGlutoRadiontoHHto2B2Vto2B2L2Nu_M_450
+  title: "Radion-450 GeV"
+  color: kBlack
+  type: signal
+  types:
+    - signal
+  scale: 1000
+- name: GluGlutoRadiontoHHto2B2Vto2B2L2Nu_M_800
+  title: "Radion-800 GeV"
+  color: kBlue
+  type: signal
+  types:
+    - signal
+  scale: 1000
 
   #scale: 0.05
 #- name: VBFToBulkGraviton
@@ -76,8 +96,6 @@
 #  type: signal
 #  color: kViolet+4
 #  scale: 5
-
-
 #- name: Other
 #  title: "other backgrounds"
 #  color: kRed-4
