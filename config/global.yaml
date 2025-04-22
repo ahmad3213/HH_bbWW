@@ -56,7 +56,13 @@ QCDRegions:
   - SS_Iso
   - OS_AntiIso
   - SS_AntiIso
-
+  - Zpeak_0b
+  - Zpeak_1b
+  - Zpeak_2b
+  - ZVeto_0b
+  - ZVeto_1b
+  - ZVeto_2b
+  - TTbar_CR
 boosted_categories: []
 
 
@@ -87,6 +93,10 @@ sample_types_to_merge: #Use this for what samples to run limits on
   - VV
   - TTV
   - TTVV
+  - QCDMu
+  - QCDEM
+  - QCD_PT
+  - QCD_HT
 
 samples_to_skip_hist:
   - GluGlutoRadiontoHHto2B2Vto2B2L2Nu_M-1000
@@ -126,3 +136,35 @@ scales:
   - Down
 deepTauVersion: 2p1
 met_type: "PFMET"
+vars_to_plot:
+  - lep1_pt
+  - lep2_pt
+  - lep1_eta
+  - lep2_eta
+  - lep1_phi
+  - lep2_phi
+  - lep1_Muon_pfRelIso04_all
+  - lep2_Muon_pfRelIso04_all
+  - lep1_Electron_miniPFRelIso_all
+  - lep2_Electron_miniPFRelIso_all
+  - bjet1_btagPNetB
+  - bjet2_btagPNetB
+  - diLep_mass
+  - Lep1Jet1Jet2_mass
+  - Lep1Lep2Jet1Jet2_mass
+  - Njets
+  - bjet1_pt
+  - bjet2_pt
+  - HT
+  - dR_dilep
+  - dR_dibjet
+  - dR_dilep_dibjet
+  - dPhi_lep1_lep2
+  - dPhi_jet1_jet2
+  - dPhi_MET_dilep
+  - dPhi_MET_dibjet
+  - bb_mass
+  - bb_mass_PNetRegPtRawCorr
+  - bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino
+  - PuppiMET_pt
+  - PuppiMET_phi
