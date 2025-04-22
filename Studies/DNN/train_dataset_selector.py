@@ -85,6 +85,7 @@ def create_dict(config_dict, output_folder):
         for signal_name in tqdm(config_dict['signal']):
             signal_dict = config_dict['signal'][signal_name]
             class_value = signal_dict['class_value']
+            spin_value = signal_dict['spin']
             mass_points = signal_dict['mass_points']
             dataset_name_format = signal_dict['dataset_name_format']
             use_combined = signal_dict['use_combined']
@@ -103,7 +104,7 @@ def create_dict(config_dict, output_folder):
                     'batch_size': 0,
                     'batch_start': 0,
                     'class_value': class_value,
-                    'spin': 0,
+                    'spin': spin_value,
                     'mass': -1,
                     'all_extensions': [],
                     'storage_folder': os.path.join(os.getcwd(), output_folder)
@@ -131,7 +132,7 @@ def create_dict(config_dict, output_folder):
                     'batch_size': 0,
                     'batch_start': 0,
                     'class_value': class_value,
-                    'spin': 0,
+                    'spin': spin_value,
                     'mass': mass_point,
                     'all_extensions': [],
                     'storage_folder': storage_folder,
@@ -298,7 +299,8 @@ def create_dict(config_dict, output_folder):
         machine_yaml['meta_data']['selection_cut'] = total_cut
         machine_yaml['meta_data']['iterate_cut'] = config_dict['iterate_cut'].format(nParity = config_dict['nParity'], parity_scan = nParity)
         machine_yaml['meta_data']['empty_dict_example'] = empty_dict_example_file #Example for empty dict structure
-
+        machine_yaml['meta_data']['input_filename'] = f'batchfile{nParity}.root'
+        machine_yaml['meta_data']['output_DNNname'] = f'ResHH_Classifier_parity{nParity}'
 
         machine_yaml['meta_data']['spin_mass_dist'] = spin_mass_dist #Dict of spin/mass distribution values for random choice parametric
 
@@ -332,7 +334,8 @@ if __name__ == '__main__':
     with open(args.config, 'r') as file:
         config_dict = yaml.safe_load(file)
 
-    output_folder = f"DNN_dataset_{datetime.today().strftime('%Y-%m-%d-%H-%M-%S')}"
+    output_base = "DNN_Datasets"
+    output_folder = os.path.join(output_base, f"Dataset_{datetime.today().strftime('%Y-%m-%d-%H-%M-%S')}")
     os.makedirs(output_folder, exist_ok=True)
     os.system(f"cp {args.config} {output_folder}/.")
 

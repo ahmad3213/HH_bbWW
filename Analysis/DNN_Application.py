@@ -100,6 +100,17 @@ def run_inference_for_tree(tree_name, rdf, models, globalConfig, dnnConfig, outp
     print(load_features)
 
 
+    nClasses = dnnConfig['nClasses'] if 'nClasses' in dnnConfig.keys() else 3
+    nParity = dnnConfig['nParity'] if 'nParity' in dnnConfig.keys() else 4
+
+    use_parametric = dnnConfig['use_parametric']
+    param_mass_list = [250, 260, 270, 280, 300, 350, 450, 550, 600, 650, 700, 800, 1000 ]
+
+    class_names_list = dnnConfig['class_names'] if 'class_names' in dnnConfig.keys() else ['Signal', 'TT', 'DY']
+
+    if not use_parametric:
+        param_mass_list = [0]
+
     def run_inference_and_save(rdf_filtered):
         # This rdf thing is so horrible with the jet branch being a vector
         # It is actually better to just save the thing and then re open the root file with uproot
@@ -107,17 +118,11 @@ def run_inference_for_tree(tree_name, rdf, models, globalConfig, dnnConfig, outp
         vars_to_save = Utilities.ListToVector(load_features)
         rdf_filtered.Snapshot(f"Events", "test.root", vars_to_save, snapshotOptions)
 
-
         # Now open it with uproot!
         events = uproot.open("test.root")
         branches = events['Events'].arrays(load_features)
 
-        nParity = 4
-        nClasses = 3
-        param_mass_list = [250, 260, 270, 280, 300, 350, 450, 550, 600, 650, 700, 800, 1000 ]
-
         all_predictions = np.zeros((len(param_mass_list), len(branches.event), nParity, nClasses))
-
 
         for parityIdx, [model, parityfunc] in enumerate(models):
             #We want to only apply the 3 models that are NOT trained on this parity
@@ -125,8 +130,6 @@ def run_inference_for_tree(tree_name, rdf, models, globalConfig, dnnConfig, outp
             zeros = np.zeros_like(all_predictions)
 
             sess = ort.InferenceSession(f"{model}.onnx")
-
-
 
             #Get single value array
             array = np.array([getattr(branches, feature_name) for feature_name in features]).transpose()
@@ -147,34 +150,45 @@ def run_inference_for_tree(tree_name, rdf, models, globalConfig, dnnConfig, outp
             #Add parametric mass point to the array
             for param_idx, param_mass in enumerate(param_mass_list):
                 param_array = np.array([[param_mass for x in array]]).transpose()
-                final_array = np.append(array, param_array, axis=1)
+                if use_parametric:
+                    final_array = np.append(array, param_array, axis=1)
+                else:
+                    final_array = array
 
                 # prediction = model.predict(final_array)
-                prediction = sess.run(None, {'x': final_array})[0] # Take only first entry, prediction is [ [Sig, TT, DY], [mBB_SR] ]
+                prediction = sess.run(None, {'x': final_array}) # Take only first entry, prediction is [ [Sig, TT, DY], [mBB_SR] ]
+
+                class_prediction = prediction[0]
+                adv_prediction = prediction[1]
 
                 # Now we need to set the trained parity to 0
+                # But if there is only one model, then skip parity
                 event_branch = np.expand_dims(branches.event, axis=-1)
                 parity_filter = np.repeat(event_branch, nClasses, axis=-1)
-                prediction = np.where(
-                    parity_filter % nParity != parityIdx,
-                    prediction,
-                    0.0
-                )
+                if nParity != 1:
+                    class_prediction = np.where(
+                        parity_filter % nParity != parityIdx,
+                        class_prediction,
+                        0.0
+                    )
 
-                all_predictions[param_idx,:,parityIdx,:] = prediction
+                all_predictions[param_idx,:,parityIdx,:] = class_prediction
 
 
         all_predictions = np.sum(all_predictions, axis=2) # Need to take average of the existing parity branches
-        all_predictions = all_predictions/(nParity-1) # So we want to divide by nParity-1 (4 parity -> train with 1, apply with remaining 3)
+        if nParity != 1: all_predictions = all_predictions/(nParity-1) # So we want to divide by nParity-1 (4 parity -> train with 1, apply with remaining 3)
 
 
         # Last save the branches
         for param_idx, param_mass in enumerate(param_mass_list):
-            prediction = all_predictions[param_idx,:,:] # Now we want to get the individual param masses predictions for filling
+            this_param_prediction = all_predictions[param_idx,:,:] # Now we want to get the individual param masses predictions for filling
 
-            branches[f'dnn_M{param_mass}_Signal'] = prediction.transpose()[0]
-            branches[f'dnn_M{param_mass}_TT'] = prediction.transpose()[1]
-            branches[f'dnn_M{param_mass}_DY'] = prediction.transpose()[2]
+            for class_idx, class_name in enumerate(class_names_list):
+                branches[f'dnn_M{param_mass}_{class_name}'] = this_param_prediction.transpose()[class_idx]
+
+                # branches[f'dnn_M{param_mass}_Signal'] = prediction.transpose()[0]
+                # branches[f'dnn_M{param_mass}_TT'] = prediction.transpose()[1]
+                # branches[f'dnn_M{param_mass}_DY'] = prediction.transpose()[2]
 
         #But we want to drop the features from this outfile
         print("Dropping ", features_to_drop)
@@ -182,7 +196,6 @@ def run_inference_for_tree(tree_name, rdf, models, globalConfig, dnnConfig, outp
             del branches[feature]
 
         #This will save the file
-        print("Saving tree")
         outfile = uproot.recreate(outFileName)
         outfile['Events'] = branches
 
@@ -208,7 +221,6 @@ if __name__ == "__main__":
     from FLAF.Analysis.HistHelper import *
     from FLAF.Common.Utilities import *
     import Analysis.hh_bbww as analysis
-    from FLAF.Analysis.GetCrossWeights import *
     import time
     parser = argparse.ArgumentParser()
     parser.add_argument('--inFileName', required=True, type=str)
