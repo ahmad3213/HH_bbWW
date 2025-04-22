@@ -1,5 +1,6 @@
 anaTupleDef: AnaProd/anaTupleDef.py
 analysis_import: Analysis.hh_bbww
+analysis_cache_import: Analysis.tasks:AnalysisCacheTask
 signal_types:
   - GluGluToRadion
   - GluGlutoRadion
