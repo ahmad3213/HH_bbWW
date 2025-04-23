@@ -101,8 +101,9 @@ def GetLepWeight(lep_index):
 
 def GetTriggerWeight():
     weight_MuTrg = f"(lep1_type == static_cast<int>(Leg::mu) ? weight_lep1_TrgSF_singleIsoMu_Central : 1.0)"
+    weight_EleTrg = f"(lep1_type == static_cast<int>(Leg::e) ? weight_lep1_TrgSF_singleEleWpTight_Central : 1.0)"
 
-    return f"{weight_MuTrg}"
+    return f"{weight_MuTrg} * {weight_EleTrg}"
 
 def AddQCDInHistDict(var, all_histograms, channels, categories, uncName, all_samples_list, scales, unc_to_not_consider_boosted, wantNegativeContributions=False):
     return
