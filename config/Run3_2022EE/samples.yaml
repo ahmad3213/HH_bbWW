@@ -1,5 +1,5 @@
 GLOBAL:
-  triggerFile: config/HH_bbWW/Run3_2022EE/triggers.yaml
+  triggerFile: config/Run3_2022EE/triggers.yaml
   sampleSelection:
     - drop ^.*
     - keep TTto2L2Nu
@@ -11,6 +11,10 @@ GLOBAL:
     #- keep ^QCD_PT.*
     #- keep ^QCD_HT.*
     # #- keep ^ST.*
+    - keep GluGluHToTauTau_M125.*
+    - keep GluGluHToWWTo2L2Nu_M125.*
+    - keep VBFHToWWTo2L2Nu_M125.*
+      #- keep ^ttH.*
     - keep ST_s_channel_antitop_4f_leptonDecays
     - keep ST_s_channel_top_4f_leptonDecays
     - keep ST_t_channel_antitop_4f_InclusiveDecays
@@ -21,10 +25,10 @@ GLOBAL:
     - keep ST_tW_top_2L2Nu
     - keep ST_tW_top_4Q
     - keep ST_tW_top_LNu2Q
-    # #- keep ^GluGlutoRadiontoHHto2B2Vto2B2L2Nu.*
-    - keep GluGlutoRadiontoHHto2B2Vto2B2L2Nu_M_260
-    - keep GluGlutoRadiontoHHto2B2Vto2B2L2Nu_M_450
-    - keep GluGlutoRadiontoHHto2B2Vto2B2L2Nu_M_800
+    - keep ^GluGlutoBulkGravitontoHHto2B2Vto2B2L2Nu_.*
+    - keep ^GluGlutoRadiontoHHto2B2Vto2B2L2Nu_.* 
+    #- keep GluGlutoRadiontoHHto2B2Vto2B2L2Nu_M_450
+    # - keep GluGlutoRadiontoHHto2B2Vto2B2L2Nu_M_800
     ## - keep ^DY
     - keep DYto2L_M_10to50_amcatnloFXFX
     - keep DYto2L_M_50_amcatnloFXFX
@@ -38,9 +42,9 @@ GLOBAL:
     - keep ^Muon_.*
     - keep ^MuonEG_.*
     # # - drop ^.*_ext[0-9]+$
+    - keep ^GluGlutoRadiontoHHto2B2Vto2B2JLNu_.*
+    - keep ^GluGlutoBulkGravitontoHHto2B2Vto2B2JLNu_.*
   use_stitching: false
-
-
 ############## Start Resonant Signal samples)##############
 ############## Signals(SL,S=0)##############
 GluGlutoRadiontoHHto2B2Vto2B2JLNu_M_250:
