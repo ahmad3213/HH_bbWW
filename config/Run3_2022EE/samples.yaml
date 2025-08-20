@@ -12,7 +12,7 @@ GLOBAL:
     # - keep ^QCD_PT.*
     # - keep ^QCD_HT.*
 
-    #- keep ^ST.*
+    # - keep ^ST.*
     - keep GluGluHToTauTau_M125.*
     - keep GluGluHToWWTo2L2Nu_M125.*
     - keep VBFHToWWTo2L2Nu_M125.*
@@ -52,7 +52,7 @@ GLOBAL:
     - keep ^Muon_.*
     - keep ^MuonEG_.*
 
-    # # - drop ^.*_ext[0-9]+$
+    # - drop ^.*_ext[0-9]+$
   use_stitching: false
 
 
