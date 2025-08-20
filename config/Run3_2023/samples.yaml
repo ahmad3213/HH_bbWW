@@ -17,7 +17,7 @@ GLOBAL:
     - keep ^SingleMuon_.*
     - keep ^MuonEG_.*
   use_stitching: false
-#######Started YH samples########
+# Started YH samples #
 XtoYHto2B2Wto2B2L2Nu_MX_1000_MY_100:
   sampleType: XtoYH
   mass: 1000
@@ -5298,4 +5298,4 @@ XtoYHto2Z2Bto2L2J2B_MX_900_MY_500:
   spin: 0
   crossSection: 1pb
   generator: madgraph
-#######Finished YH samples########
+# Finished YH samples #

@@ -2,7 +2,7 @@ GLOBAL:
   triggerFile: config/Run3_2022/triggers.yaml
   sampleSelection:
     - drop ^.*
-    ##- keep ^TT.*
+    # #- keep ^TT.*
     - keep TTto2L2Nu
     - keep TTtoLNu2Q
     - keep TTto4Q
@@ -11,9 +11,9 @@ GLOBAL:
     # Almost zero events pass selections
     # - keep ^QCD.*MuEnrichedPt5
     # - keep ^QCD.*EMEnriched
-    ## - keep ^QCD
+    # # - keep ^QCD
 
-    ##- keep ^ST.*
+    # #- keep ^ST.*
     - keep ST_s_channel_antitop_4f_leptonDecays
     - keep ST_s_channel_top_4f_leptonDecays
     - keep ST_t_channel_antitop_4f_InclusiveDecays
@@ -38,9 +38,9 @@ GLOBAL:
     - keep DYto2L_M_50_0J_amcatnloFXFX
     - keep DYto2L_M_50_1J_amcatnloFXFX
     - keep DYto2L_M_50_2J_amcatnloFXFX
-    ## - keep ^DY.*
+    # # - keep ^DY.*
 
-    ##- keep ^WtoLNu_amcatnloFXFX SL
+    # #- keep ^WtoLNu_amcatnloFXFX SL
     - keep WtoLNu_0J_amcatnloFXFX
     - keep WtoLNu_1J_amcatnloFXFX
     - keep WtoLNu_2J_amcatnloFXFX
@@ -61,8 +61,8 @@ GLOBAL:
     - keep ^MuonEG_.*
   use_stitching: false
 
-############## Start Resonant Signal samples)##############
-############## Signals(SL,S=0)##############
+# Start Resonant Signal samples) #
+# Signals(SL,S=0) #
 GluGlutoRadiontoHHto2B2Vto2B2JLNu_M_250:
   sampleType: GluGluToRadion
   mass: 250
@@ -195,7 +195,7 @@ GluGlutoRadiontoHHto2B2Vto2B2JLNu_M_5000:
   spin: 0
   crossSection: 1pb
   generator: madgraph
-############## Signals(SL,S=2)##############
+# Signals(SL,S=2) #
 GluGlutoBulkGravitontoHHto2B2Vto2B2JLNu_M_250:
   sampleType: GluGluToBulkGraviton
   mass: 250
@@ -328,7 +328,7 @@ GluGlutoBulkGravitontoHHto2B2Vto2B2JLNu_M_5000:
   spin: 2
   crossSection: 1pb
   generator: madgraph
-############## Signals(DL,S=0)##############
+# Signals(DL,S=0 #
 GluGlutoRadiontoHHto2B2Vto2B2L2Nu_M_250:
   sampleType: GluGluToRadion
   mass: 250
@@ -461,7 +461,7 @@ GluGlutoRadiontoHHto2B2Vto2B2L2Nu_M_5000:
   spin: 0
   crossSection: 1pb
   generator: madgraph
-############## Signals(DL,S=2)##############
+# Signals(DL,S=2) #
 GluGlutoBulkGravitontoHHto2B2Vto2B2L2Nu_M_250:
   sampleType: GluGluToBulkGraviton
   mass: 250
@@ -594,7 +594,7 @@ GluGlutoBulkGravitontoHHto2B2Vto2B2L2Nu_M_5000:
   spin: 2
   crossSection: 1pb
   generator: madgraph
-#######Started YH samples########
+# Started YH samples #
 XtoYHto2B2Wto2B2L2Nu_MX_1000_MY_100:
   sampleType: XtoYH
   mass: 1000
@@ -6379,11 +6379,10 @@ XtoYHto2Z2Bto2L2J2B_MX_900_MY_600:
   spin: 0
   crossSection: 1pb
   generator: madgraph
-#######Finished YH samples########
-############## Finished Resonant Signal samples)##############
-############## Start non -Resonant Signal samples)##############
-#cross section twiki https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWGHH ###
-#######GGF########
+# Finished YH samples #
+# Start non -Resonant Signal samples #
+# cross section twiki https://twiki.cern.ch/twiki/bin/view/LHCPhysics/LHCHWGHH #
+# GGF #
 GluGlutoHHto2B2V_kl_1p00_kt_1p00_c2_0p00:
   sampleType: HHnonRes
   generator: powheg
@@ -6396,7 +6395,7 @@ GluGlutoHHto2B2Vto2L2Nu_kl_2p45_kt_1p00_c2_0p00:
   sampleType: HHnonRes
   generator: powheg
   crossSection: 1pb
-#######VBF########
+# VBF #
 VBFHHto2B2V_CV_1_C2V_0_C3_1:
   sampleType: HHnonRes
   generator: madgraph
@@ -6469,4 +6468,4 @@ VBFHHto2B2Vto2L2Nu_CV_m2p12_C2V_3p87_C3_m5p96:
   sampleType: HHnonRes
   generator: madgraph
   crossSection: 1pb
-############## Finished non -Resonant Signal samples)##############
+# Finished non -Resonant Signal samples) #
