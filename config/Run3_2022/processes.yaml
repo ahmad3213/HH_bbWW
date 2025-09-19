@@ -1,25 +1,38 @@
-# DY_stitched:
-#   name: "DY"
-#   cross_section_NNLO: 12 # NLO -> NNLO
-#   cross_section_NLO: 11 # NLO -> NNLO
-#   color: "blue" # eliminates need for plot.yaml
-#   datasets:
-#     - DY_MLL_50
-#     - DY_NJet0 # samples.yaml xs: DY_NJet0 # NLO
-#     - DY_NJet1
-#     ...
-#   processing:
-#     - name: stithcing
-#       stage: hist_making
-#       file: DY_stitching.py
-#     - name: scaling
-#       stage: hist_processing
-#       file: xs_scaling.py
-#     # - name: filter_true_lepton
-#     #   stage: hist_processing
-#     #   file: filter_true.py
-#   anaTupleProcessor: DY_stitch_bins.py
-
+DY_stitched:
+  name: "DY"
+  # cross_section_NNLO: 12 # NLO -> NNLO
+  # cross_section_NLO: 11 # NLO -> NNLO
+  color: "blue" # eliminates need for plot.yaml
+  to_stitch: true
+  datasets:
+    # - DY_MLL_50
+    # - DY_NJet0 # samples.yaml xs: DY_NJet0 # NLO
+    # - DY_NJet1
+    # - DYto2L_M_50_amcatnloFXFX
+    - DYto2L_M_50_amcatnloFXFX
+    - DYto2L_M_50_0J_amcatnloFXFX
+    - DYto2L_M_50_1J_amcatnloFXFX
+    - DYto2L_M_50_2J_amcatnloFXFX
+    - DYto2L_M_50_PTLL_40to100_1J_amcatnloFXFX
+    - DYto2L_M_50_PTLL_100to200_1J_amcatnloFXFX
+    - DYto2L_M_50_PTLL_200to400_1J_amcatnloFXFX
+    - DYto2L_M_50_PTLL_400to600_1J_amcatnloFXFX
+    - DYto2L_M_50_PTLL_600_1J_amcatnloFXFX
+    - DYto2L_M_50_PTLL_40to100_2J_amcatnloFXFX
+    - DYto2L_M_50_PTLL_100to200_2J_amcatnloFXFX
+    - DYto2L_M_50_PTLL_200to400_2J_amcatnloFXFX
+    - DYto2L_M_50_PTLL_400to600_2J_amcatnloFXFX
+    - DYto2L_M_50_PTLL_600_2J_amcatnloFXFX
+  processing:
+    - name: stitching_Info
+      stage:
+        - AnaCache
+        - AnaTuple
+      module: DY_stitching.py
+    - name: stitching_Weight
+      stage: hist_processing
+      module: xs_scaling.py
+  anaTupleProcessor: DY_stitch_bins.py
 TT:
   name: "t#bar{t}"
   color: "kGreen-3"  # eliminates need for plot.yaml

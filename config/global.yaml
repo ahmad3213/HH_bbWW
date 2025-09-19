@@ -317,3 +317,11 @@ vars_to_plot:
   - LinHMEDNN_linear_hme_dnn_m700
   - LinHMEDNN_linear_hme_dnn_m800
   - LinHMEDNN_linear_hme_dnn_m1000
+DY_stitching_enable: true
+DY_stitch_variables:
+  var1:
+    expression: "LHE_Vpt"
+    bins: [0, 40, 100, 200, 400, 600, 10000]
+  var2:
+    expression: "LHE_Njets"
+    bins: [0, 1, 2, 3, 4, 1000]

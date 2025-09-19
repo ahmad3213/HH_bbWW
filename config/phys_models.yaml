@@ -2,7 +2,8 @@ BaseTestModel:
   name: "Base Test Model"
   backgrounds:
     - TT_Inclusive
-    - DY_HighMass
+    # - DY_HighMass
+    - DY_stitched
   signals:
     - GluGluToRadion_DoubleLepton
 
@@ -10,8 +11,9 @@ BaseModel:
   name: "Base Model"
   backgrounds:
     - TT
-    - DY_LowMass
-    - DY_HighMass
+    - DY_stitched
+    # - DY_LowMass
+    # - DY_HighMass    -
     - ST
     - VV
   # groups:

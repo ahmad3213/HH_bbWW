@@ -6,7 +6,7 @@ GLOBAL:
     - keep TTto2L2Nu
     - keep TTtoLNu2Q
     - keep TTto4Q
-    
+
     # There are so many QCD samples and the MC is just not worth running
     # Almost zero events pass selections
     # - keep ^QCD.*MuEnrichedPt5
