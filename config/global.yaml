@@ -809,3 +809,6 @@ variables:
   - HMEinDNNBins_HME_mass_DL_DNN_M800_0p4_0p6
   - HMEinDNNBins_HME_mass_DL_DNN_M800_0p6_0p8
   - HMEinDNNBins_HME_mass_DL_DNN_M800_0p8_1p0
+# switch ON/OFF for stitching DY samples defined in processes.yaml
+DY_stitched_enable: True
+vars_to_plot: lep1_pt

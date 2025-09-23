@@ -1,24 +1,44 @@
-# DY_stitched:
-#   name: "DY"
-#   cross_section_NNLO: 12 # NLO -> NNLO
-#   cross_section_NLO: 11 # NLO -> NNLO
-#   color: "blue" # eliminates need for plot.yaml
-#   datasets:
-#     - DY_MLL_50
-#     - DY_NJet0 # samples.yaml xs: DY_NJet0 # NLO
-#     - DY_NJet1
-#     ...
-#   processing:
-#     - name: stithcing
-#       stage: hist_making
-#       file: DY_stitching.py
-#     - name: scaling
-#       stage: hist_processing
-#       file: xs_scaling.py
-#     # - name: filter_true_lepton
-#     #   stage: hist_processing
-#     #   file: filter_true.py
-#   anaTupleProcessor: DY_stitch_bins.py
+DY_stitched:
+  name: "DY"
+  # cross_section_NNLO: 12  # NLO -> NNLO
+  # cross_section_NLO: 11   # NLO -> NNLO
+  color: "blue"             # eliminates need for plot.yaml
+  to_stitch: true
+  processors:
+    - name: Stitcher
+      module: Analysis.MCStitching
+      class: LHE_PT_NJetStitcher
+      config: FLAF/config/DY_stitch_PT_NJet.yaml
+  datasets:
+    - DYto2E_M_50_amcatnloFXFX
+    - DYto2E_M_50_0J_amcatnloFXFX
+    - DYto2E_M_50_1J_amcatnloFXFX
+    - DYto2E_M_50_2J_amcatnloFXFX
+    - DYto2E_M_50_PTLL_40to100_1J_amcatnloFXFX
+    - DYto2E_M_50_PTLL_100to200_1J_amcatnloFXFX
+    - DYto2E_M_50_PTLL_200to400_1J_amcatnloFXFX
+    - DYto2E_M_50_PTLL_400to600_1J_amcatnloFXFX
+    - DYto2E_M_50_PTLL_600_1J_amcatnloFXFX
+    - DYto2E_M_50_PTLL_40to100_2J_amcatnloFXFX
+    - DYto2E_M_50_PTLL_100to200_2J_amcatnloFXFX
+    - DYto2E_M_50_PTLL_200to400_2J_amcatnloFXFX
+    - DYto2E_M_50_PTLL_400to600_2J_amcatnloFXFX
+    - DYto2E_M_50_PTLL_600_2J_amcatnloFXFX
+    # DY_2Mu samples
+    - DYto2Mu_M_50_amcatnloFXFX
+    - DYto2Mu_M_50_0J_amcatnloFXFX
+    - DYto2Mu_M_50_1J_amcatnloFXFX
+    - DYto2Mu_M_50_2J_amcatnloFXFX
+    - DYto2Mu_M_50_PTLL_40to100_1J_amcatnloFXFX
+    - DYto2Mu_M_50_PTLL_100to200_1J_amcatnloFXFX
+    - DYto2Mu_M_50_PTLL_200to400_1J_amcatnloFXFX
+    - DYto2Mu_M_50_PTLL_400to600_1J_amcatnloFXFX
+    - DYto2Mu_M_50_PTLL_600_1J_amcatnloFXFX
+    - DYto2Mu_M_50_PTLL_40to100_2J_amcatnloFXFX
+    - DYto2Mu_M_50_PTLL_100to200_2J_amcatnloFXFX
+    - DYto2Mu_M_50_PTLL_200to400_2J_amcatnloFXFX
+    - DYto2Mu_M_50_PTLL_400to600_2J_amcatnloFXFX
+    - DYto2Mu_M_50_PTLL_600_2J_amcatnloFXFX
 
 TT:
   name: "t#bar{t}"
@@ -360,4 +380,4 @@ Data_MuonEG:
 #     - name: ABCD
 #       stage: hist_processing
 #       file: QCD_ABCD.py
-#   supress_negative_bins: true #
+#   supress_negative_bins: true

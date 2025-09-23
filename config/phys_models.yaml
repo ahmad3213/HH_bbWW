@@ -3,6 +3,7 @@ BaseTestModel:
   backgrounds:
     - TT_Inclusive
     - DY_HighMass
+    - DY_stitched
   signals:
     - GluGluToRadion_DoubleLepton
 
@@ -12,6 +13,7 @@ BaseModel:
     - TT
     - DY_LowMass
     - DY_HighMass
+    - DY_stitched
     - ST
     - VV
     - W
@@ -43,6 +45,7 @@ Run3_Model:
     - TT
     - DY_LowMass
     - DY_HighMass
+    - DY_stitched
     - ST
     - VV
     - W
