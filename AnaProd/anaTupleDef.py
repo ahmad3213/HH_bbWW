@@ -129,7 +129,6 @@ defaultColToSave = [
     "luminosityBlock",
     "run",
     "event",
-    "sample_type",
     "period",
     "X_mass",
     "X_spin",

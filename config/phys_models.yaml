@@ -1,33 +1,14 @@
-BaseTestModel:
-  name: "Base Test Model"
-  backgrounds:
-    - TT_Inclusive
-    - DY_HighMass
-    - DY_stitched
-  signals:
-    - GluGluToRadion_DoubleLepton
-
-BaseModel:
-  name: "Base Model"
+Run3_Model:
+  name: "Base model for Run 3"
   backgrounds:
     - TT
-    - DY_LowMass
-    - DY_HighMass
-    - DY_stitched
+    - DY
     - ST
     - VV
     - W
-  # groups:
-  #   mc_bkgs:
-  #     - DY_stitched
-  #     - VV
   signals:
-    # - GluGluToRadion
-    # - GluGluToBulkGraviton
-    - GluGluToRadion_DoubleLepton
-    - GluGluToRadion_SingleLepton
-    - GluGluToBulkGraviton_DoubleLepton
-    - GluGluToBulkGraviton_SingleLepton
+    - XtoHHto2B2W_SingleLepton
+    - XtoHHto2B2W_DoubleLepton
   data:
     - Data_Full
 
@@ -35,22 +16,5 @@ OnlyData:
   name: "Only Data"
   backgrounds: [ ]
   signals: [ ]
-  data:
-    - Data_Full
-
-
-Run3_Model:
-  name: "Run3 Model"
-  backgrounds:
-    - TT
-    - DY_LowMass
-    - DY_HighMass
-    - DY_stitched
-    - ST
-    - VV
-    - W
-  signals:
-    - XtoHHto2B2W_SingleLepton
-    - XtoHHto2B2W_DoubleLepton
   data:
     - Data_Full
