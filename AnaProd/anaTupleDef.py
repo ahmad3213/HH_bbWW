@@ -8,17 +8,20 @@ lepton_legs = ["lep1", "lep2"]
 offline_legs = ["lep1", "lep2"]
 
 
-Muon_int_observables = ["Muon_tightId", "Muon_highPtId", "Muon_pfIsoId"]
+Muon_int_observables = [
+    "Muon_mediumId",
+    "Muon_tightId",
+    "Muon_highPtId",
+    "Muon_pfIsoId",
+]
 Muon_float_observables = [
     "Muon_tkRelIso",
     "Muon_pfRelIso04_all",
-    "Muon_miniPFRelIso_all",
 ]
 Muon_observables = Muon_int_observables + Muon_float_observables
 Electron_int_observables = ["Electron_mvaNoIso_WP80", "Electron_mvaIso_WP80"]
 Electron_float_observables = [
     "Electron_pfRelIso03_all",
-    "Electron_miniPFRelIso_all",
     "Electron_mvaIso",
     "Electron_mvaNoIso",
 ]
@@ -28,15 +31,31 @@ JetObservables = [
     "PNetRegPtRawCorrNeutrino",
     "PNetRegPtRawRes",
     "rawFactor",
-    "btagDeepFlavB",
-    "btagDeepFlavCvB",
-    "btagDeepFlavCvL",
-    "btagDeepFlavQG",
     "btagPNetB",
     "btagPNetCvB",
     "btagPNetCvL",
     "btagPNetCvNotB",
     "btagPNetQvG",
+    "btagPNetTauVJet",
+    "chEmEF",
+    "chHEF",
+    "chMultiplicity",
+    "hfEmEF",
+    "hfHEF",
+    "hfadjacentEtaStripsSize",
+    "hfcentralEtaStripSize",
+    "hfsigmaEtaEta",
+    "hfsigmaPhiPhi",
+    "jetId",
+    "muEF",
+    "muonSubtrFactor",
+    "nConstituents",
+    "nElectrons",
+    "nMuons",
+    "nSVs",
+    "neEmEF",
+    "neHEF",
+    "neMultiplicity",
     "ptRes",
     "idbtagPNetB",
     "area",
@@ -46,84 +65,82 @@ JetObservablesMC = ["hadronFlavour", "partonFlavour"]
 
 FatJetObservables = [
     "area",
-    "btagCSVV2",
-    "btagDDBvLV2",
-    "btagDeepB",
-    "btagHbb",
-    "deepTagMD_HbbvsQCD",
-    "deepTagMD_ZHbbvsQCD",
-    "deepTagMD_ZbbvsQCD",
-    "deepTagMD_bbvsLight",
-    "deepTag_H",
+    "chEmEF",
+    "chHEF",
+    "chMultiplicity",
+    "globalParT2_QCD0HF",
+    "globalParT2_QCD1HF",
+    "globalParT2_QCD2HF",
+    "globalParT2_TopW",
+    "globalParT2_TopbW",
+    "globalParT2_TopbWev",
+    "globalParT2_TopbWmv",
+    "globalParT2_TopbWq",
+    "globalParT2_TopbWqq",
+    "globalParT2_TopbWtauhv",
+    "globalParT2_Xbb",
+    "globalParT2_XbbVsQCD",
+    "globalParT2_Xcc",
+    "globalParT2_Xcs",
+    "globalParT2_Xgg",
+    "globalParT2_Xqq",
+    "globalParT2_Xtauhtaue",
+    "globalParT2_Xtauhtauh",
+    "globalParT2_Xtauhtaum",
+    "globalParT_massRes",
+    "globalParT_massVis",
     "jetId",
+    "lsf3",
     "msoftdrop",
-    "nBHadrons",
-    "nCHadrons",
+    "muEF",
+    "n2b1",
+    "n3b1",
     "nConstituents",
-    "rawFactor",
-    "particleNetMD_QCD",
-    "particleNetMD_Xbb",
-    "particleNet_HbbvsQCD",
-    "particleNet_mass",  # 2018
-    "particleNet_QCD",
-    "particleNet_XbbVsQCD",  # 2016
+    "neEmEF",
+    "neHEF",
+    "neMultiplicity",
     "particleNetLegacy_QCD",
+    "particleNetLegacy_QCDb",
+    "particleNetLegacy_QCDbb",
+    "particleNetLegacy_QCDc",
+    "particleNetLegacy_QCDcc",
+    "particleNetLegacy_QCDothers",
     "particleNetLegacy_Xbb",
-    "particleNetLegacy_mass",  # 2016
-    "particleNetWithMass_QCD",
+    "particleNetLegacy_Xcc",
+    "particleNetLegacy_Xqq",
+    "particleNetLegacy_mass",
+    "particleNetWithMass_H4qvsQCD",
     "particleNetWithMass_HbbvsQCD",
-    "particleNet_massCorr",  # 2016
+    "particleNetWithMass_HccvsQCD",
+    "particleNetWithMass_QCD",
+    "particleNetWithMass_TvsQCD",
+    "particleNetWithMass_WvsQCD",
+    "particleNetWithMass_ZvsQCD",
+    "particleNet_QCD",
+    "particleNet_QCD0HF",
+    "particleNet_QCD1HF",
+    "particleNet_QCD2HF",
+    "particleNet_Xbb",
+    "particleNet_XbbVsQCD",
+    "particleNet_XccVsQCD",
+    "particleNet_XggVsQCD",
+    "particleNet_XqqVsQCD",
+    "particleNet_XteVsQCD",
+    "particleNet_XtmVsQCD",
+    "particleNet_XttVsQCD",
+    "particleNet_massCorr",
+    "rawFactor",
     "tau1",
     "tau2",
     "tau3",
     "tau4",
 ]
 
-# in this PR https://github.com/cms-sw/cmssw/commit/17457a557bd75ab479dfb78013edf9e551ecd6b7, particleNet MD have been removed therefore we will switch to take
-
-
-# # New ParticleNet trainings are not available in MiniAOD until Run3 13X
-"""
-particleNetWithMass_QCD YES
-particleNetWithMass_TvsQCD NO
-particleNetWithMass_WvsQCD NO
-particleNetWithMass_ZvsQCD NO
-particleNetWithMass_H4qvsQCD NO
-particleNetWithMass_HbbvsQCD YES
-particleNetWithMass_HccvsQCD NO
-particleNet_QCD YES
-particleNet_QCD2HF NO
-particleNet_QCD1HF NO
-particleNet_QCD0HF NO
-particleNet_massCorr YES
-particleNet_XbbVsQCD YES
-particleNet_XccVsQCD NO
-particleNet_XqqVsQCD NO
-particleNet_XggVsQCD NO
-particleNet_XttVsQCD NO
-particleNet_XtmVsQCD NO
-particleNet_XteVsQCD NO
-"""
-# Restore taggers that were decommisionned for Run-3
-"""
-particleNetLegacy_mass YES
-particleNetLegacy_Xbb YES
-particleNetLegacy_Xcc NO
-particleNetLegacy_Xqq NO
-particleNetLegacy_QCD YES
-"""
-
-# ParticleNet legacy jet tagger is already in 106Xv2 MINIAOD,
-# add PartlceNet legacy mass regression and new combined tagger + mass regression
-
-# for more info: ---> https://github.com/cms-sw/cmssw/blob/master/PhysicsTools/NanoAOD/python/jetsAK8_cff.py
-
-FatJetObservablesMC = ["hadronFlavour", "partonFlavour"]
+FatJetObservablesMC = ["hadronFlavour"]
 
 SubJetObservables = ["btagDeepB", "eta", "mass", "phi", "pt", "rawFactor"]
 SubJetObservablesMC = ["hadronFlavour", "partonFlavour"]
 
-# defaultColToSave = ["entryIndex","luminosityBlock", "run","event", "sample_type", "sample_name", "period", "X_mass", "X_spin", "isData","PuppiMET_pt", "PuppiMET_phi", "nJet","DeepMETResolutionTune_pt", "DeepMETResolutionTune_phi","DeepMETResponseTune_pt", "DeepMETResponseTune_phi","PV_npvs"]
 defaultColToSave = [
     "FullEventId",
     "luminosityBlock",
@@ -133,14 +150,25 @@ defaultColToSave = [
     "X_mass",
     "X_spin",
     "isData",
-    "PuppiMET_pt",
-    "PuppiMET_phi",
+    "PuppiMET_covXX",
+    "PuppiMET_covXY",
+    "PuppiMET_covYY",
+    "PuppiMET_significance",
+    "PuppiMET_sumEt",
     "nJet",
-    "DeepMETResolutionTune_pt",
-    "DeepMETResolutionTune_phi",
-    "DeepMETResponseTune_pt",
-    "DeepMETResponseTune_phi",
     "PV_npvs",
+]
+
+# Add this functionality eventually
+MCObservables = [
+    "LHEPdfWeight",
+    "LHEReweightingWeight",
+    "nLHEPdfWeight",
+    "nLHEReweightingWeight",
+    "LHEScaleWeight",
+    "nLHEScaleWeight",
+    "PSWeight",
+    "nPSWeight",
 ]
 
 
@@ -168,13 +196,24 @@ def addAllVariables(
     dfw.Apply(AnaBaseline.RecoHWWJetSelection)
     dfw.Apply(Corrections.getGlobal().jet.getEnergyResolution)
     dfw.Apply(Corrections.getGlobal().btag.getWPid)
+    dfw.Apply(
+        Corrections.getGlobal().JetVetoMap.GetJetVetoMap
+    )  # Must init JetVetoMap before applying
+    dfw.Apply(CommonBaseline.ApplyJetVetoMap)
+
+    dfw.Define("Jet_isForward", "abs(v_ops::eta(Jet_p4)) > 2.5")
+    for var in ["pt", "eta", "phi", "mass"]:
+        dfw.DefineAndAppend(f"ForwardJet_{var}", f"v_ops::{var}(Jet_p4[Jet_isForward])")
+    for var in [
+        "jetId",
+        "puIdDisc",
+    ]:  # These are not part of the v_ops namespace due to not being part of p4 vec
+        dfw.DefineAndAppend(f"ForwardJet_{var}", f"Jet_{var}[Jet_isForward]")
 
     PtEtaPhiM = ["pt", "eta", "phi", "mass"]
     # save reco lepton from HWWcandidate
-    dfw.DefineAndAppend(f"nPreselMu", f"Muon_pt[Muon_presel].size()")
-    dfw.DefineAndAppend(f"nPreselEle", f"Electron_pt[Electron_presel].size()")
-    dfw.DefineAndAppend(f"nTightMu", f"Muon_pt[Muon_sel].size()")
-    dfw.DefineAndAppend(f"nTightEle", f"Electron_pt[Electron_sel].size()")
+    dfw.DefineAndAppend(f"nSelMu", f"Muon_pt[Muon_sel].size()")
+    dfw.DefineAndAppend(f"nSelEle", f"Electron_pt[Electron_sel].size()")
     n_legs = 2
     for leg_idx in range(n_legs):
 
@@ -234,60 +273,6 @@ def addAllVariables(
             f"HwwCandidate.leg_type.size() > {leg_idx} ? HwwCandidate.leg_index.at({leg_idx}) : -1",
         )
 
-    # save all pre selcted muons
-
-    for var in PtEtaPhiM:
-        dfw.DefineAndAppend(
-            f"SelectedMuon_{var}", f"v_ops::{var}(Muon_p4[Muon_presel])"
-        )
-    for muon_obs in Muon_float_observables:
-        dfw.DefineAndAppend(f"Selected{muon_obs}", f"RVecF({muon_obs}[Muon_presel])")
-    for muon_obs in Muon_int_observables:
-        dfw.DefineAndAppend(f"Selected{muon_obs}", f"RVecI({muon_obs}[Muon_presel])")
-    for var in PtEtaPhiM:
-        dfw.DefineAndAppend(
-            f"SelectedElectron_{var}", f"v_ops::{var}(Electron_p4[Electron_presel])"
-        )
-    for ele_obs in Electron_float_observables:
-        dfw.DefineAndAppend(f"Selected{ele_obs}", f"RVecF({ele_obs}[Electron_presel])")
-    for ele_obs in Electron_int_observables:
-        dfw.DefineAndAppend(f"Selected{ele_obs}", f"RVecI({ele_obs}[Electron_presel])")
-    # #save information for fatjets
-    # fatjet_obs = []
-    # fatjet_obs.extend(FatJetObservables)
-    # if not isData:
-    #     dfw.Define(f"FatJet_genJet_idx", f" FindMatching(FatJet_p4[FatJet_sel],GenJetAK8_p4,0.3)")
-    #     fatjet_obs.extend(JetObservablesMC)
-    # dfw.DefineAndAppend(f"SelectedFatJet_pt", f"v_ops::pt(FatJet_p4[FatJet_sel])")
-    # dfw.DefineAndAppend(f"SelectedFatJet_eta", f"v_ops::eta(FatJet_p4[FatJet_sel])")
-    # dfw.DefineAndAppend(f"SelectedFatJet_phi", f"v_ops::phi(FatJet_p4[FatJet_sel])")
-    # dfw.DefineAndAppend(f"SelectedFatJet_mass", f"v_ops::mass(FatJet_p4[FatJet_sel])")
-    # for fatjetVar in fatjet_obs:
-    #     if(f"FatJet_{fatjetVar}" not in dfw.df.GetColumnNames()): continue
-    #     dfw.DefineAndAppend(f"SelectedFatJet_{fatjetVar}", f"FatJet_{fatjetVar}[FatJet_sel]")
-    # subjet_obs = []
-    # subjet_obs.extend(SubJetObservables)
-    # if not isData:
-    #     dfw.Define(f"SubJet1_genJet_idx", f" FindMatching(SubJet_p4[FatJet_subJetIdx1],SubGenJetAK8_p4,0.3)")
-    #     dfw.Define(f"SubJet2_genJet_idx", f" FindMatching(SubJet_p4[FatJet_subJetIdx2],SubGenJetAK8_p4,0.3)")
-    #     fatjet_obs.extend(SubJetObservablesMC)
-    # for subJetIdx in [1,2]:
-    #     dfw.Define(f"SelectedFatJet_subJetIdx{subJetIdx}", f"FatJet_subJetIdx{subJetIdx}[FatJet_sel]")
-    #     dfw.Define(f"FatJet_SubJet{subJetIdx}_isValid", f" FatJet_subJetIdx{subJetIdx} >=0 && FatJet_subJetIdx{subJetIdx} < nSubJet")
-    #     dfw.DefineAndAppend(f"SelectedFatJet_SubJet{subJetIdx}_isValid", f"FatJet_SubJet{subJetIdx}_isValid[FatJet_sel]")
-    #     for subJetVar in subjet_obs:
-    #         dfw.DefineAndAppend(f"SelectedFatJet_SubJet{subJetIdx}_{subJetVar}", f"""
-    #                             RVecF subjet_var(SelectedFatJet_pt.size(), 0.f);
-    #                             for(size_t fj_idx = 0; fj_idx<SelectedFatJet_pt.size(); fj_idx++) {{
-    #                                 auto sj_idx = SelectedFatJet_subJetIdx{subJetIdx}.at(fj_idx);
-    #                                 if(sj_idx >= 0 && sj_idx < SubJet_{subJetVar}.size()){{
-    #                                     subjet_var[fj_idx] = SubJet_{subJetVar}.at(sj_idx);
-    #                                 }}
-    #                             }}
-    #                             return subjet_var;
-    #                             """)
-
-    # Instead of re-writing everything for sorting, lets just take the already finished Selected branches and append the sorted ones
     # save information for fatjets
     fatjet_obs = []
     fatjet_obs.extend(FatJetObservables)
@@ -302,8 +287,6 @@ def addAllVariables(
     dfw.Define(f"tmp_SelectedFatJet_phi", f"v_ops::phi(FatJet_p4[FatJet_sel])")
     dfw.Define(f"tmp_SelectedFatJet_mass", f"v_ops::mass(FatJet_p4[FatJet_sel])")
     for fatjetVar in fatjet_obs:
-        if f"FatJet_{fatjetVar}" not in dfw.df.GetColumnNames():
-            continue
         dfw.Define(f"tmp_SelectedFatJet_{fatjetVar}", f"FatJet_{fatjetVar}[FatJet_sel]")
     subjet_obs = []
     subjet_obs.extend(SubJetObservables)
@@ -368,8 +351,6 @@ def addAllVariables(
             name, f"Take(tmp_SelectedFatJet_{var}, SelectedFatJet_idxSorted)"
         )
     for fatjetVar in fatjet_obs:
-        if f"FatJet_{fatjetVar}" not in dfw.df.GetColumnNames():
-            continue
         dfw.DefineAndAppend(
             f"SelectedFatJet_{fatjetVar}",
             f"Take(tmp_SelectedFatJet_{fatjetVar}, SelectedFatJet_idxSorted)",
@@ -405,48 +386,21 @@ def addAllVariables(
                 f"Take(tmp_SelectedFatJet_SubJet{subJetIdx}_{subJetVar}, SelectedFatJet_idxSorted)",
             )
 
-    # save information for fatjets
-    # fatjet_obs = []
-    # fatjet_obs.extend(FatJetObservables)
-    # dfw.Define("SelectedFatJet_idx", "CreateIndexes(FatJet_particleNet_XbbVsQCD[FatJet_sel].size())")
-    # dfw.Define("SelectedFatJet_idxSorted", "ReorderObjects(FatJet_particleNet_XbbVsQCD[FatJet_sel], SelectedFatJet_idx)")
-    # if not isData:
-    #     dfw.Define(f"FatJet_genJet_idx", f" Take(FindMatching(FatJet_p4[FatJet_sel],GenJetAK8_p4,0.3)), SelectedFatJet_idxSorted)")
-    #     fatjet_obs.extend(JetObservablesMC)
-    # for var in PtEtaPhiM:
-    #     name = f"SelectedFatJet_{var}"
-    #     dfw.DefineAndAppend(name, f"Take((FatJet_{var}[FatJet_sel]), SelectedFatJet_idxSorted)")
-    # for var in fatjet_obs:
-    #     if(f"FatJet_{var}" not in dfw.df.GetColumnNames()): continue
-    #     name = f"SelectedFatJet_{var}"
-    #     dfw.DefineAndAppend(name, f"Take((FatJet_{var}[FatJet_sel]), SelectedFatJet_idxSorted)")
-    # subjet_obs = []
-    # subjet_obs.extend(SubJetObservables)
-    # if not isData:
-    #     dfw.Define(f"SubJet1_genJet_idx", f" Take(FindMatching(SubJet_p4[FatJet_subJetIdx1],SubGenJetAK8_p4,0.3), SelectedFatJet_idxSorted)")
-    #     dfw.Define(f"SubJet2_genJet_idx", f" Take(FindMatching(SubJet_p4[FatJet_subJetIdx2],SubGenJetAK8_p4,0.3), SelectedFatJet_idxSorted)")
-    #     fatjet_obs.extend(SubJetObservablesMC)
-    # for subJetIdx in [1,2]:
-    #     dfw.Define(f"SelectedFatJet_subJetIdx{subJetIdx}", f"Take(FatJet_subJetIdx{subJetIdx}[FatJet_sel], SelectedFatJet_idxSorted)")
-    #     dfw.Define(f"FatJet_SubJet{subJetIdx}_isValid", f" Take(FatJet_subJetIdx{subJetIdx} >=0 && FatJet_subJetIdx{subJetIdx} < nSubJet, SelectedFatJet_idxSorted)")
-    #     dfw.DefineAndAppend(f"SelectedFatJet_SubJet{subJetIdx}_isValid", f"Take(FatJet_SubJet{subJetIdx}_isValid[FatJet_sel], SelectedFatJet_idxSorted)")
-    #     for subJetVar in subjet_obs:
-    #         dfw.DefineAndAppend(f"SelectedFatJet_SubJet{subJetIdx}_{subJetVar}", f"""Take(
-    #                             RVecF subjet_var(FatJet_pt.size(), 0.f);
-    #                             for(size_t fj_idx = 0; fj_idx<FatJet_pt.size(); fj_idx++) {{
-    #                                 auto sj_idx = FatJet_subJetIdx{subJetIdx}.at(fj_idx);
-    #                                 if(sj_idx >= 0 && sj_idx < SubJet_{subJetVar}.size()){{
-    #                                     subjet_var[fj_idx] = SubJet_{subJetVar}.at(sj_idx);
-    #                                 }}
-    #                             }}
-    #                             return subjet_var;
-    #                             , SelectedFatJet_idxSorted)""")
-
     pf_str = global_params["met_type"]
-    dfw.DefineAndAppend(f"met_pt_nano", f"static_cast<float>({pf_str}_p4_nano.pt())")
-    dfw.DefineAndAppend(f"met_phi_nano", f"static_cast<float>({pf_str}_p4_nano.phi())")
-    dfw.DefineAndAppend("met_pt", f"static_cast<float>({pf_str}_p4.pt())")
-    dfw.DefineAndAppend("met_phi", f"static_cast<float>({pf_str}_p4.phi())")
+    dfw.DefineAndAppend(
+        f"{pf_str}_pt_nano", f"static_cast<float>({pf_str}_p4_nano.pt())"
+    )
+    dfw.DefineAndAppend(
+        f"{pf_str}_phi_nano", f"static_cast<float>({pf_str}_p4_nano.phi())"
+    )
+
+    dfw.Redefine(f"{pf_str}_pt", f"static_cast<float>({pf_str}_p4.pt())")
+    dfw.Redefine(f"{pf_str}_phi", f"static_cast<float>({pf_str}_p4.phi())")
+    # Manually adding the PuppiMET_pt to the colToSave is required. Originally, the branches exist (so must be ReDefined), but are dropped
+    # Since they are dropped, and ReDefine does not add them to the save list, this must be done manually (or ReDefine needs to be ajudsted in FLAF)
+    for var in [f"{pf_str}_pt", f"{pf_str}_phi"]:
+        if var not in dfw.colToSave:
+            dfw.colToSave.append(var)
 
     if trigger_class is not None:
         hltBranches = dfw.Apply(

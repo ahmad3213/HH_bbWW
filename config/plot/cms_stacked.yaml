@@ -37,6 +37,7 @@ page_setup:
     - ana_text
     - cat_text
     - ch_text
+    - customreg_text
   legend: legend
 
 legend:
@@ -46,7 +47,7 @@ legend:
   fill_color: kWhite
   fill_style: 0
   border_size: 0
-  text_size: 0.017
+  text_size: 0.012
   font: 42
 
 ana_text:
@@ -79,7 +80,7 @@ datasim_text:
 
 cat_text:
   pos_ref: datasim_text
-  pos: [ 0.1, -0.079 ]
+  pos: [ 0.1, -0.08 ]
   text_size: 0.026
   font: 62
 
@@ -87,6 +88,12 @@ ch_text:
   pos_ref: datasim_text
   pos: [ 0.01, -0.08 ]
   text_size: 0.026
+  font: 62
+
+customreg_text:
+  pos_ref: datasim_text
+  pos: [ 0.24, -0.08 ]
+  text_size: 0.020
   font: 62
 
 bkg_hist:

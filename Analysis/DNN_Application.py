@@ -41,13 +41,24 @@ class DNNProducer:
         list_features = self.dnnConfig["listfeatures"]
         # Features to use for DNN application (high level names to create)
         highlevel_features = self.dnnConfig["highlevelfeatures"]
+        # Features to use for DNN application (hme names to pull from cache)
+        hme_features = (
+            self.dnnConfig["hmefeatures"]
+            if "hmefeatures" in self.dnnConfig.keys()
+            else None
+        )
 
         # Features to load from df to awkward
         load_features = set()
-        load_features.update(features)
-        for feature in list_features:
-            load_features.update([feature[0]])
-        load_features.update(highlevel_features)
+        if features != None:
+            load_features.update(features)
+        if list_features != None:
+            for feature in list_features:
+                load_features.update([feature[0]])
+        if highlevel_features != None:
+            load_features.update(highlevel_features)
+        if hme_features != None:
+            load_features.update(hme_features)
 
         load_features.update(["FullEventId"])
         load_features.update(["event"])
@@ -105,6 +116,12 @@ class DNNProducer:
         list_features = dnnConfig["listfeatures"]
         # Features to use for DNN application (high level names to create)
         highlevel_features = dnnConfig["highlevelfeatures"]
+        # Features to use for DNN application (hme names to pull from cache)
+        hme_features = (
+            self.dnnConfig["hmefeatures"]
+            if "hmefeatures" in self.dnnConfig.keys()
+            else None
+        )
 
         nClasses = dnnConfig["nClasses"] if "nClasses" in dnnConfig.keys() else 3
         nParity = dnnConfig["nParity"] if "nParity" in dnnConfig.keys() else 4
@@ -156,6 +173,12 @@ class DNNProducer:
             ).transpose()
             array = np.append(array, array_highlevelfeatures, axis=1)
 
+        if hme_features != None:
+            array_hmefeatures = np.array(
+                [getattr(branches, feature_name) for feature_name in hme_features]
+            ).transpose()
+            array = np.append(array, array_hmefeatures, axis=1)
+
         # Initialize the local predictions including per parity, but this will be summed out later
         local_predictions = np.zeros(
             (len(param_mass_list), len(array), nParity, nClasses)
@@ -178,7 +201,7 @@ class DNNProducer:
                 )  # Take only first entry, prediction is [ [Sig, TT, DY], [mBB_SR] ]
 
                 class_prediction = prediction[0]
-                adv_prediction = prediction[1]
+                # adv_prediction = prediction[1] # Sometimes we don't use an adv model
 
                 # Now we need to set the trained parity to 0
                 # But if there is only one model, then skip parity

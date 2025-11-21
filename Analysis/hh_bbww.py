@@ -6,49 +6,12 @@ if __name__ == "__main__":
 from FLAF.Common.HistHelper import *
 from FLAF.Common.Utilities import *
 
-
 WorkingPointsParticleNet = {
     "Run3_2022": {"Loose": 0.047, "Medium": 0.245, "Tight": 0.6734},
     "Run3_2022EE": {"Loose": 0.0499, "Medium": 0.2605, "Tight": 0.6915},
     "Run3_2023": {"Loose": 0.0358, "Medium": 0.1917, "Tight": 0.6172},
     "Run3_2023BPix": {"Loose": 0.0359, "Medium": 0.1919, "Tight": 0.6133},
 }
-
-
-# I comment this to save what was done before but it must be put in the format of the new createKeyFilterDict function
-# def createKeyFilterDict(global_cfg_dict, year):
-#     reg_dict = {}
-#     filter_str = ""
-#     channels_to_consider = global_cfg_dict['channels_to_consider']
-#     qcd_regions_to_consider = global_cfg_dict['QCDRegions']
-#     categories_to_consider = global_cfg_dict["categories"]
-#     #triggers = global_cfg_dict['hist_triggers']
-#     #mass_cut_limits = global_cfg_dict['mass_cut_limits']
-#     for ch in channels_to_consider:
-#         for reg in qcd_regions_to_consider:
-#             for cat in categories_to_consider:
-#                 #print(ch, reg, cat, filter_str)
-#                 #print()
-#                 #filter_base = f" ({ch} && {triggers[ch]} && {reg} && {cat})"
-
-#                 #Need to get the channel ID from config dict
-#                 filter_base = f" ((channelId == {global_cfg_dict['channelDefinition'][ch]}) && {reg} && {cat})"
-#                 filter_str = f"(" + filter_base
-#                 #print(ch, reg, cat, filter_str)
-#                 #print()
-#                 #for mass_name,mass_limits in mass_cut_limits.items():
-#                 #    filter_str+=f"&& ({mass_name} >= {mass_limits[0]})"
-#                 #print(filter_str)
-#                 #if cat != 'boosted' and cat!= 'baseline':
-#                 #    filter_str += "&& (b1_pt>0 && b2_pt>0)"
-#                 filter_str += ")"
-#                 #print(filter_str)
-#                 key = (ch, reg, cat)
-#                 reg_dict[key] = filter_str
-#                 #print(ch, reg, cat, filter_str)
-#                 #print()
-
-#     return reg_dict
 
 
 def createKeyFilterDict(global_params, period):
@@ -104,7 +67,6 @@ def createKeyFilterDict(global_params, period):
 
 
 def GetBTagWeight(global_cfg_dict, cat, applyBtag=False):
-    # This does not just apply btag, but it replaces the existing weight with a new weight! So dumb!!!
     btag_weight = "1"
     btagshape_weight = "1"
     if applyBtag:
@@ -113,11 +75,11 @@ def GetBTagWeight(global_cfg_dict, cat, applyBtag=False):
     else:
         if cat != "btag_shape" and cat != "boosted":
             btagshape_weight = "weight_bTagShape_Central"
-    # return f'1.'
     return f"{btag_weight}*{btagshape_weight}"
 
 
 def GetWeight(channel, cat, boosted_categories):  # do you need all these args?
+    # weights_to_apply = ["weight_MC_Lumi_pu", "ExtraDYWeight"]
     weights_to_apply = ["weight_MC_Lumi_pu"]
     total_weight = "*".join(weights_to_apply)
     for lep_index in [1, 2]:
@@ -148,20 +110,6 @@ def GetTriggerWeight():
     return f"{weight_MuTrg} * {weight_EleTrg}"
 
 
-def AddQCDInHistDict(
-    var,
-    all_histograms,
-    channels,
-    categories,
-    uncName,
-    all_samples_list,
-    scales,
-    unc_to_not_consider_boosted,
-    wantNegativeContributions=False,
-):
-    return
-
-
 class DataFrameBuilderForHistograms(DataFrameBuilderBase):
 
     def defineCutFlow(self):
@@ -180,7 +128,9 @@ class DataFrameBuilderForHistograms(DataFrameBuilderBase):
 
         self.DefineAndAppend(
             "nSelBtag_jets",
-            f"int(bjet1_btagPNetB >= {self.bTagWP}) + int(bjet2_btagPNetB >= {self.bTagWP})",
+            # f"int(bjet1_btagPNetB >= {self.bTagWP}) + int(bjet2_btagPNetB >= {self.bTagWP})",
+            # f"int(bjet1_btagPNetB >= {self.bTagWP_Loose}) + int(bjet2_btagPNetB >= {self.bTagWP_Loose})",
+            f"int(bjet1_idbtagPNetB >= 1) + int(bjet2_idbtagPNetB >= 1)",  # ID 1 is loose
         )
         self.DefineAndAppend(
             "nSelBtag_fatjets", f"int( SelectedFatJet_particleNet_XbbVsQCD[0] >= 0.8 )"
@@ -195,79 +145,41 @@ class DataFrameBuilderForHistograms(DataFrameBuilderBase):
             f"!res2b && nSelBtag_fatjets > 0 && (DL || (SL && SelectedFatJet_pt.size() > 1) || (SL && centralJet_pt.size() >= 2) ) ",
         )  # Greater than zero, but logic should only allow 0 or 1
         self.DefineAndAppend(
-            "res1b", f"SelectedFatJet_pt.size() == 0 && resolved && nSelBtag_jets == 1"
+            "recovery",
+            f"SelectedFatJet_pt.size() == 0 && resolved && nSelBtag_jets == 1",
         )
         # We are throwing away events with a FatJet that are not b-tagged in this method
 
-        self.DefineAndAppend("SR", "( (Zveto || OppFlavor) && mbb_SR )")
-        self.DefineAndAppend("res1b_SR", f"res1b && SR")
-        self.DefineAndAppend("res2b_SR", f"res2b && SR")
-        self.DefineAndAppend("boosted_SR", f"boosted && SR")
-
-        self.DefineAndAppend("inclusive", f"centralJet_pt.size() >= 2")
+        self.DefineAndAppend("inclusive", f"res2b || boosted || recovery")
         self.DefineAndAppend("baseline", f"return true;")
 
-        self.DefineAndAppend(
-            "DL_OneAK8LooseB_OR_OneAk4LooseB",
-            f"(centralJet_pt.size() >= 2 && bjet1_btagPNetB >= {self.bTagWP_Loose}) || (SelectedFatJet_pt.size() >= 1 && SelectedFatJet_particleNet_XbbVsQCD[0] >= 0.8)",
-        )
-        self.DefineAndAppend(
-            "SL_OneAK8LooseB_OR_OneAk4LooseB",
-            f"(centralJet_pt.size() >= 4 && bjet1_btagPNetB >= {self.bTagWP_Loose}) || (SelectedFatJet_pt.size() >= 1 && centralJet_pt.size() >= 2 && (SelectedFatJet_particleNet_XbbVsQCD[0] >= 0.8 || bjet1_btagPNetB >= {self.bTagWP_Loose})) || (SelectedFatJet_pt.size() >= 2 && (SelectedFatJet_particleNet_XbbVsQCD[0] >= 0.8 || SelectedFatJet_particleNet_XbbVsQCD[1] >= 0.8))",
-        )
-
-        self.DefineAndAppend(
-            "development",
-            "inclusive && ( (lep2_legType > 0 && DL_OneAK8LooseB_OR_OneAk4LooseB) || (lep2_legType <= 0 && SL_OneAK8LooseB_OR_OneAk4LooseB) )",
-        )
-
-    def defineChannels(self):
-        # self.df = self.df.Define("channelId", f"(lep1_legType*10) + lep2_legType") #Muhammad moved this to anaTupleDef like a jerk
-        for channel in self.config["channelSelection"]:
-            ch_value = self.config["channelDefinition"][channel]
-            print(f"channel {channel} has value {ch_value}")
-            self.DefineAndAppend(channel, f"channelId=={ch_value}")
-            # self.df = self.df.Define(f"{channel}", f"channelId=={ch_value}")
-            # self.colToSave.append(channel)
-
     def defineLeptonPreselection(self):
-        # Later we will defined some lepton selections
-        self.df = self.df.Define(
-            "passed_singleIsoMu",
-            "HLT_singleIsoMu && (lep1_legType == 2 && lep1_HasMatching_singleIsoMu)",
-        )
         self.df = self.df.Define(
             "leadingleppT_ele",
             "((lep1_legType == 1 && lep1_pt  > 32 ) || (lep2_legType == 1 && lep2_pt  > 32))",
         )
         self.df = self.df.Define(
             "leadingleppT_Mu",
-            "((lep1_legType == 2 && lep1_pt  > 25 ) || (lep1_legType == 2 && lep2_pt  > 25))",
+            "((lep1_legType == 2 && lep1_pt  > 25 ) || (lep2_legType == 2 && lep2_pt  > 25))",
         )
         self.df = self.df.Define(
             "leadingleppT", "(leadingleppT_ele || leadingleppT_Mu)"
         )  # 32 need to be changed to 25 for DL channel once Double lepton trigger SF are integrated
         self.df = self.df.Define(
-            "subleadleppT", "(lep2_legType < 1 || (lep1_pt > 15 && lep2_pt > 15))"
-        )
-        self.df = self.df.Define(
-            "fakeableleppT", "(lep1_pt > 10 && (lep2_legType < 1 || lep2_pt > 10))"
-        )
-        self.df = self.df.Define(
-            "fakeablelep",
-            "fakeableleppT && (((lep1_legType == 1 && lep1_Electron_miniPFRelIso_all < 0.4) || (lep1_legType == 2 && lep1_Muon_pfRelIso04_all< 0.4)) || ((lep2_legType < 1 ) || ((lep2_legType == 1 && lep2_Electron_miniPFRelIso_all < 0.4) || (lep2_legType == 2 && lep2_Muon_pfRelIso04_all < 0.4)) ) )",
+            "subleadleppT", "(lep2_legType < 1 || (lep1_pt > 10 && lep2_pt > 10))"
         )
         self.df = self.df.Define(
             "tightlep",
-            "((lep1_legType == 2 && lep1_Muon_tightId == 1) || (lep1_legType == 1 && lep1_Electron_mvaNoIso_WP80 == 1)) && (lep2_legType < 1 || ((lep2_legType == 2 && lep2_Muon_tightId == 1 ) || (lep2_legType == 1 && lep2_Electron_mvaNoIso_WP80 == 1)))",
+            "((lep1_legType == 2 && lep1_Muon_tightId == 1) || (lep1_legType == 1 && lep1_Electron_mvaIso_WP80 == 1)) && (lep2_legType < 1 || ((lep2_legType == 2 && lep2_Muon_tightId == 1 ) || (lep2_legType == 1 && lep2_Electron_mvaIso_WP80 == 1)))",
         )
         self.df = self.df.Define(
             "tightlep_Iso",
-            " (((lep1_legType == 1 && lep1_Electron_miniPFRelIso_all < 0.25) || (lep1_legType == 2 && lep1_Muon_pfRelIso04_all < 0.25)) || ((lep2_legType < 1 ) || ((lep2_legType == 1 && lep2_Electron_miniPFRelIso_all < 0.25) || (lep2_legType == 2 && lep2_Muon_pfRelIso04_all < 0.25)) ) )",
+            # " (((lep1_legType == 1 && lep1_Electron_pfRelIso03_all < 0.15) || (lep1_legType == 2 && lep1_Muon_pfRelIso04_all < 0.15)) || ((lep2_legType < 1 ) || ((lep2_legType == 1 && lep2_Electron_pfRelIso03_all < 0.15) || (lep2_legType == 2 && lep2_Muon_pfRelIso04_all < 0.15)) ) )",
+            " (((lep1_legType == 1) || (lep1_legType == 2 && lep1_Muon_pfRelIso04_all < 0.15)) || ((lep2_legType < 1 ) || ((lep2_legType == 1) || (lep2_legType == 2 && lep2_Muon_pfRelIso04_all < 0.15)) ) )",  # Remove any electron Iso since we use iso in the ID
         )
         self.df = self.df.Define(
             "Single_lep_trg",
-            "(HLT_singleIsoMu && (lep1_legType == 2 && lep1_HasMatching_singleIsoMu)) || (HLT_singleEleWpTight && (lep1_legType == 1 && lep1_HasMatching_singleEleWpTight)) ",
+            "(HLT_singleIsoMu && lep1_legType == 2 && lep1_HasMatching_singleIsoMu) || (HLT_singleEleWpTight && lep1_legType == 1 && lep1_HasMatching_singleEleWpTight) ",
         )
         self.df = self.df.Define(
             "event_selection",
@@ -275,8 +187,9 @@ class DataFrameBuilderForHistograms(DataFrameBuilderBase):
         )
 
     def defineJetSelections(self):
-        self.df = self.df.Define("jet1_isvalid", "centralJet_pt.size() > 0")
-        self.df = self.df.Define("jet2_isvalid", "centralJet_pt.size() > 1")
+        self.df = self.df.Define("Njets", "centralJet_pt.size()")
+        self.df = self.df.Define("jet1_isvalid", "Njets > 0")
+        self.df = self.df.Define("jet2_isvalid", "Njets > 1")
         self.df = self.df.Define("fatjet_isvalid", "SelectedFatJet_pt.size() > 0")
         self.df = self.df.Define(
             "fatsubjet1_isvalid",
@@ -286,23 +199,56 @@ class DataFrameBuilderForHistograms(DataFrameBuilderBase):
             "fatsubjet2_isvalid",
             "(SelectedFatJet_SubJet2_isValid == 1 && SelectedFatJet_SubJet2_pt > 20 && abs(SelectedFatJet_SubJet2_eta) < 2.5)",
         )
-        self.df = self.df.Define(
-            "bjet1_btagPNetB", "jet1_isvalid ? centralJet_btagPNetB[0] : -1.0"
-        )
-        self.df = self.df.Define(
-            "bjet2_btagPNetB", "jet2_isvalid ? centralJet_btagPNetB[1] : -1.0"
-        )
+
         self.df = self.df.Define("bjet1_pt", "centralJet_pt[0]")
         self.df = self.df.Define("bjet1_phi", "centralJet_phi[0]")
         self.df = self.df.Define("bjet1_eta", "centralJet_eta[0]")
         self.df = self.df.Define("bjet1_mass", "centralJet_mass[0]")
+        self.df = self.df.Define(
+            "bjet1_btagPNetB", "jet1_isvalid ? centralJet_btagPNetB[0] : -1.0"
+        )
+        self.df = self.df.Define(
+            "bjet1_idbtagPNetB", "jet1_isvalid ? centralJet_idbtagPNetB[0] : -1.0"
+        )
 
         self.df = self.df.Define("bjet2_pt", "centralJet_pt[1]")
         self.df = self.df.Define("bjet2_phi", "centralJet_phi[1]")
         self.df = self.df.Define("bjet2_eta", "centralJet_eta[1]")
         self.df = self.df.Define("bjet2_mass", "centralJet_mass[1]")
+        self.df = self.df.Define(
+            "bjet2_btagPNetB", "jet2_isvalid ? centralJet_btagPNetB[1] : -1.0"
+        )
+        self.df = self.df.Define(
+            "bjet2_idbtagPNetB", "jet2_isvalid ? centralJet_idbtagPNetB[1] : -1.0"
+        )
 
-        self.df = self.df.Define("Njets", "centralJet_pt.size()")
+        self.df = self.df.Define("wjet1_pt", "Njets > 2 ? centralJet_pt[2] : -10.0")
+        self.df = self.df.Define("wjet1_phi", "Njets > 2 ? centralJet_phi[2] : -10.0")
+        self.df = self.df.Define("wjet1_eta", "Njets > 2 ? centralJet_eta[2] : -10.0")
+        self.df = self.df.Define("wjet1_mass", "Njets > 2 ? centralJet_mass[2] : -10.0")
+
+        self.df = self.df.Define("wjet2_pt", "Njets > 3 ? centralJet_pt[3] : -10.0")
+        self.df = self.df.Define("wjet2_phi", "Njets > 3 ? centralJet_phi[3] : -10.0")
+        self.df = self.df.Define("wjet2_eta", "Njets > 3 ? centralJet_eta[3] : -10.0")
+        self.df = self.df.Define("wjet2_mass", "Njets > 3 ? centralJet_mass[3] : -10.0")
+
+        self.df = self.df.Define(
+            "fatbjet1_pt", "fatjet_isvalid ? SelectedFatJet_pt[0] : -10.0"
+        )
+        self.df = self.df.Define(
+            "fatbjet1_phi", "fatjet_isvalid ? SelectedFatJet_phi[0] : -10.0"
+        )
+        self.df = self.df.Define(
+            "fatbjet1_eta", "fatjet_isvalid ? SelectedFatJet_eta[0] : -10.0"
+        )
+        self.df = self.df.Define(
+            "fatbjet1_mass", "fatjet_isvalid ? SelectedFatJet_mass[0] : -10.0"
+        )
+        self.df = self.df.Define(
+            "fatbjet1_XbbVsQCD",
+            "fatjet_isvalid ? SelectedFatJet_particleNet_XbbVsQCD[0] : -10.0",
+        )
+
         self.df = self.df.Define(
             "bsubjet1_btagDeepB",
             "fatjet_isvalid ? SelectedFatJet_SubJet1_btagDeepB[0] : -1.0",
@@ -335,7 +281,15 @@ class DataFrameBuilderForHistograms(DataFrameBuilderBase):
             "Zveto",
             f"(lep1_legType == lep2_legType ) && (abs(diLep_mass - 91.1876) > 10)",
         )
+
         self.DefineAndAppend("OppFlavor", f"(lep1_legType != lep2_legType)")
+
+        self.DefineAndAppend("ZVeto_OS_Iso", f"(Zveto || OppFlavor) && OS_Iso")
+
+        self.DefineAndAppend("ZVeto_SS_Iso", f"(Zveto || OppFlavor) && SS_Iso")
+
+        self.DefineAndAppend("ZPeak_OS_Iso", f"(Zpeak || OppFlavor) && OS_Iso")
+
         self.DefineAndAppend(
             "TTbar_CR", f"OS_Iso && lep1_legType == lep2_legType && diLep_mass > 100 "
         )
@@ -351,6 +305,24 @@ class DataFrameBuilderForHistograms(DataFrameBuilderBase):
             "Lep1Jet1Jet2_mass", f"(lep1_legType == 2) ? Lep1Jet1Jet2_p4.mass() : 0.0"
         )
 
+    def addDYReweighting(self):
+        self.DefineAndAppend(
+            "ExtraDYWeight_ee_res2b", f"channelId == 11  && res2b ? 1.4 : 1.0"
+        )
+        self.DefineAndAppend(
+            "ExtraDYWeight_ee_recovery", f"channelId == 11 && recovery ? 1.13 : 1.0"
+        )
+        self.DefineAndAppend(
+            "ExtraDYWeight_mumu_res2b", f"channelId == 22 && res2b ? 1.39 : 1.0"
+        )
+        self.DefineAndAppend(
+            "ExtraDYWeight_mumu_recovery", f"channelId == 22 && recovery ? 1.12 : 1.0"
+        )
+        self.DefineAndAppend(
+            "ExtraDYWeight",
+            f"ExtraDYWeight_ee_res2b * ExtraDYWeight_ee_recovery * ExtraDYWeight_mumu_res2b * ExtraDYWeight_mumu_recovery",
+        )
+
     def calculateMT(self):
         self.df = self.df.Define(
             "MT_lep1", f"(lep1_legType > 0) ? Calculate_MT(lep1_p4, PuppiMET_p4) : 0.0"
@@ -360,9 +332,8 @@ class DataFrameBuilderForHistograms(DataFrameBuilderBase):
         )
         self.df = self.df.Define(
             "MT_tot",
-            f"(lep1_legType > 0 && lep2_legType > 0) ? Calculate_TotalMT(lep1_p4, lep2_p4, DeepMETResolutionTune_p4) : 0.0",
+            f"(lep1_legType > 0 && lep2_legType > 0) ? Calculate_TotalMT(lep1_p4, lep2_p4, PuppiMET_p4) : 0.0",
         )
-        # self.df.colToSave.append(['MT_lep1','MT_lep2','MT_tot']) # I don't know if you need these observables for further cuts in hist stages.
 
     def selectTrigger(self, trigger):
         self.df = self.df.Filter(trigger)
@@ -425,7 +396,7 @@ def defineAllP4(df):
         f"centralJet_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino_p4",
         f"GetP4(centralJet_pt*(1.0-centralJet_rawFactor)*centralJet_PNetRegPtRawCorr*centralJet_PNetRegPtRawCorrNeutrino, centralJet_eta, centralJet_phi, centralJet_mass)",
     )
-    for met_var in ["DeepMETResolutionTune", "DeepMETResponseTune", "PuppiMET", "met"]:
+    for met_var in ["PuppiMET"]:
         df = df.Define(
             f"{met_var}_p4",
             f"ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double>>({met_var}_pt,0.,{met_var}_phi,0.)",
@@ -458,36 +429,37 @@ def AddDNNVariables(df):
         f"ROOT::Math::VectorUtil::DeltaPhi(centralJet_p4[0],centralJet_p4[1])",
     )
     df = df.Define(
-        "dPhi_MET_dilep", f"ROOT::Math::VectorUtil::DeltaPhi(met_p4,(lep1_p4+lep2_p4))"
+        "dPhi_MET_dilep",
+        f"ROOT::Math::VectorUtil::DeltaPhi(PuppiMET_p4,(lep1_p4+lep2_p4))",
     )
     df = df.Define(
         "dPhi_MET_dibjet",
-        f"ROOT::Math::VectorUtil::DeltaPhi(met_p4,(centralJet_p4[0]+centralJet_p4[1]))",
+        f"ROOT::Math::VectorUtil::DeltaPhi(PuppiMET_p4,(centralJet_p4[0]+centralJet_p4[1]))",
     )
     df = df.Define("min_dR_lep0_jets", f"MinDeltaR(lep1_p4, centralJet_p4)")
     df = df.Define("min_dR_lep1_jets", f"MinDeltaR(lep2_p4, centralJet_p4)")
 
     df = df.Define(
         "MT",
-        f"(lep1_legType > 0 && lep2_legType > 0) ? Calculate_TotalMT(lep1_p4, lep2_p4, met_p4) : -100.",
+        f"(lep1_legType > 0 && lep2_legType > 0) ? Calculate_TotalMT(lep1_p4, lep2_p4, PuppiMET_p4) : -100.",
     )
     df = df.Define(
         "MT2",
-        f"(lep1_legType > 0 && lep2_legType > 0) ? float(analysis::Calculate_MT2(lep1_p4, lep2_p4, centralJet_p4[0], centralJet_p4[1], met_p4)) : -100.",
+        f"(lep1_legType > 0 && lep2_legType > 0) ? float(analysis::Calculate_MT2(lep1_p4, lep2_p4, centralJet_p4[0], centralJet_p4[1], PuppiMET_p4)) : -100.",
     )
 
     # Functional form of MT2 claculation
     df = df.Define(
         "MT2_ll",
-        f"(lep1_legType > 0 && lep2_legType > 0) ? float(analysis::Calculate_MT2_func(lep1_p4, lep2_p4, centralJet_p4[0] + centralJet_p4[1] + met_p4, centralJet_p4[0].mass(), centralJet_p4[1].mass())) : -100.",
+        f"(lep1_legType > 0 && lep2_legType > 0) ? float(analysis::Calculate_MT2_func(lep1_p4, lep2_p4, centralJet_p4[0] + centralJet_p4[1] + PuppiMET_p4, centralJet_p4[0].mass(), centralJet_p4[1].mass())) : -100.",
     )
     df = df.Define(
         "MT2_bb",
-        f"(lep1_legType > 0 && lep2_legType > 0) ? float(analysis::Calculate_MT2_func(centralJet_p4[0], centralJet_p4[1], lep1_p4 + lep2_p4 + met_p4, 80.4, 80.4)) : -100.",
+        f"(lep1_legType > 0 && lep2_legType > 0) ? float(analysis::Calculate_MT2_func(centralJet_p4[0], centralJet_p4[1], lep1_p4 + lep2_p4 + PuppiMET_p4, 80.4, 80.4)) : -100.",
     )
     df = df.Define(
         "MT2_blbl",
-        f"(lep1_legType > 0 && lep2_legType > 0) ? float(analysis::Calculate_MT2_func(lep1_p4 + centralJet_p4[1], lep2_p4 + centralJet_p4[1], met_p4, 0.0, 0.0)) : -100.",
+        f"(lep1_legType > 0 && lep2_legType > 0) ? float(analysis::Calculate_MT2_func(lep1_p4 + centralJet_p4[1], lep2_p4 + centralJet_p4[1], PuppiMET_p4, 0.0, 0.0)) : -100.",
     )
 
     df = df.Define(
@@ -532,34 +504,13 @@ def AddDNNVariables(df):
 def PrepareDfForHistograms(dfForHistograms):
     dfForHistograms.df = defineAllP4(dfForHistograms.df)
     dfForHistograms.df = AddDNNVariables(dfForHistograms.df)
-    # dfForHistograms.defineChannels()
     dfForHistograms.defineTriggers()
     dfForHistograms.defineLeptonPreselection()
     dfForHistograms.defineJetSelections()
     dfForHistograms.defineQCDRegions()
     dfForHistograms.defineControlRegions()
     dfForHistograms.defineCategories()
-    # dfForHistograms.defineBoostedVariables()
-    # dfForHistograms.redefineWeights()
-    # dfForHistograms.df = createInvMass(dfForHistograms.df)
+    dfForHistograms.addDYReweighting()
     dfForHistograms.calculateMT()
     dfForHistograms.defineCutFlow()
     return dfForHistograms
-
-
-# def PrepareDfForHistograms(dfForHistograms):
-#     dfForHistograms.defineChannels()
-#     dfForHistograms.df = defineAllP4(dfForHistograms.df)
-#     dfForHistograms.df = AddDNNVariables(dfForHistograms.df)
-#     dfForHistograms.defineLeptonPreselection()
-#     dfForHistograms.defineJetSelections()
-#     dfForHistograms.defineQCDRegions()
-#     dfForHistograms.defineControlRegions()
-#     dfForHistograms.defineCategories()
-#     #dfForHistograms.defineBoostedVariables()
-#     # dfForHistograms.defineTriggers()
-#     #dfForHistograms.redefineWeights()
-#     #dfForHistograms.df = createInvMass(dfForHistograms.df)
-#     dfForHistograms.calculateMT()
-#     dfForHistograms.defineCutFlow()
-#     return dfForHistograms

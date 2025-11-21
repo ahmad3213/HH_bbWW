@@ -12,3 +12,11 @@ channel_text:
   'eE': 'ee'
   'eMu': 'e #mu'
   'muMu': '#mu #mu'
+
+customregion_text:
+  'OS_Iso': 'OS, Isolated'
+  'SS_Iso': 'SS, Isolated'
+  'OS_AntiIso': 'OS, Non-Isolated'
+  'SS_AntiIso': 'SS, Non-Isolated'
+  'ZVeto_OS_Iso': 'Z Veto, OS, Isolated'
+  'ZPeak_OS_Iso': 'Z Peak, OS, Isolated'

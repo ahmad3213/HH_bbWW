@@ -27,6 +27,6 @@ lep2_pt
 lep2_eta
 lep2_phi
 lep2_mass
-met_pt
-met_phi
+PuppiMET_pt
+PuppiMET_phi
 event

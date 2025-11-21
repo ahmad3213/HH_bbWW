@@ -4,23 +4,23 @@ norm:
     name: CMS_pileup_{}
   MuonID_TightID:
     expression: weight_lep1_MuonID_SF_TightID_Trk{scale}_rel * weight_lep2_MuonID_SF_TightID_Trk{scale}_rel * final_weight
-    name: MuonID_TightID
+    name: MuonID_TightID_{}
   MuonID_TightIDIso:
     expression: weight_lep1_MuonID_SF_LoosePFIso{scale}_rel * weight_lep2_MuonID_SF_LoosePFIso{scale}_rel * final_weight
-    name: MuonID_TightIDIso
+    name: MuonID_TightIDIso_{}
   EleID_TightIDIso:
     expression: weight_lep1_EleSF_wp80iso_EleID{scale}_rel * weight_lep2_EleSF_wp80iso_EleID{scale}_rel * final_weight
-    name: EleID_TightIDIso
+    name: EleID_TightIDIso_{}
   EleID_TightIDNoIso:
     expression: weight_lep1_EleSF_wp80noiso_EleID{scale}_rel * weight_lep2_EleSF_wp80noiso_EleID{scale}_rel * final_weight
-    name: EleID_TightIDNoIso
+    name: EleID_TightIDNoIso_{}
 
   SingleEleTrg:
     expression: weight_lep1_TrgSF_singleEleWpTight_singleEle{scale}_rel * weight_lep2_TrgSF_singleEleWpTight_singleEle{scale}_rel * final_weight
-    name: SingleEleTrg
+    name: SingleEleTrg_{}
   SingleMuonTrg:
     expression: weight_lep1_TrgSF_singleIsoMu_IsoMu24{scale}_rel * weight_lep2_TrgSF_singleIsoMu_IsoMu24{scale}_rel * final_weight
-    name: SingleMuonTrg
+    name: SingleMuonTrg_{}
 
 
 shape:

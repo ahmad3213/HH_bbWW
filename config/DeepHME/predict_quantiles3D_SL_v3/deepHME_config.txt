@@ -23,6 +23,6 @@ lep1_pt
 lep1_eta
 lep1_phi
 lep1_mass
-met_pt
-met_phi
+PuppiMET_pt
+PuppiMET_phi
 event
