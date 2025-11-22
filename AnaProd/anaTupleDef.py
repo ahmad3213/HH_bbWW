@@ -386,21 +386,16 @@ def addAllVariables(
                 f"Take(tmp_SelectedFatJet_SubJet{subJetIdx}_{subJetVar}, SelectedFatJet_idxSorted)",
             )
 
-    pf_str = global_params["met_type"]
+    met_type = global_params["met_type"]
     dfw.DefineAndAppend(
-        f"{pf_str}_pt_nano", f"static_cast<float>({pf_str}_p4_nano.pt())"
+        f"{met_type}_pt_nano", f"static_cast<float>({met_type}_p4_nano.pt())"
     )
     dfw.DefineAndAppend(
-        f"{pf_str}_phi_nano", f"static_cast<float>({pf_str}_p4_nano.phi())"
+        f"{met_type}_phi_nano", f"static_cast<float>({met_type}_p4_nano.phi())"
     )
 
-    dfw.Redefine(f"{pf_str}_pt", f"static_cast<float>({pf_str}_p4.pt())")
-    dfw.Redefine(f"{pf_str}_phi", f"static_cast<float>({pf_str}_p4.phi())")
-    # Manually adding the PuppiMET_pt to the colToSave is required. Originally, the branches exist (so must be ReDefined), but are dropped
-    # Since they are dropped, and ReDefine does not add them to the save list, this must be done manually (or ReDefine needs to be ajudsted in FLAF)
-    for var in [f"{pf_str}_pt", f"{pf_str}_phi"]:
-        if var not in dfw.colToSave:
-            dfw.colToSave.append(var)
+    dfw.RedefineAndAppend(f"{met_type}_pt", f"static_cast<float>({met_type}_p4.pt())")
+    dfw.RedefineAndAppend(f"{met_type}_phi", f"static_cast<float>({met_type}_p4.phi())")
 
     if trigger_class is not None:
         hltBranches = dfw.Apply(

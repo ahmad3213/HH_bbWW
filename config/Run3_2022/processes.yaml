@@ -1,6 +1,6 @@
 DY:
   name: "DY"
-  color: "blue"
+  color: "kAzure+7"
   sub_processes:
     - DY_M_10to50
     - DYto2E_M_50
