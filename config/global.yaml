@@ -448,6 +448,8 @@ QCDRegions:
   - SS_AntiIso
   - ZVeto_OS_Iso
   - ZPeak_OS_Iso
+  - mbbCR_Tight
+  - mbbCR_AntiTight
 
 boosted_categories: [ ]
 
@@ -498,8 +500,8 @@ variables:
   - lep2_phi
   - lep2_mass
 
-  - met_pt
-  - met_phi
+  - PuppiMET_pt
+  - PuppiMET_phi
 
   - bjet1_pt
   - bjet1_eta
@@ -541,6 +543,7 @@ variables:
   - lep2_Muon_pfRelIso04_all
   - lep1_Electron_pfRelIso03_all
   - lep2_Electron_pfRelIso03_all
+  - mT_fix
 
   # # High Level Single Lepton
   # - SingleLep_DeepHME_mass

@@ -13,10 +13,15 @@ Muon_int_observables = [
     "Muon_tightId",
     "Muon_highPtId",
     "Muon_pfIsoId",
+    "Muon_mediumPromptId",
+    "Muon_miniIsoId",
+    "Muon_mvaMuID_WP",
 ]
 Muon_float_observables = [
     "Muon_tkRelIso",
     "Muon_pfRelIso04_all",
+    "Muon_pfRelIso03_all",
+    "Muon_miniPFRelIso_all",
 ]
 Muon_observables = Muon_int_observables + Muon_float_observables
 Electron_int_observables = ["Electron_mvaNoIso_WP80", "Electron_mvaIso_WP80"]
@@ -24,6 +29,7 @@ Electron_float_observables = [
     "Electron_pfRelIso03_all",
     "Electron_mvaIso",
     "Electron_mvaNoIso",
+    "Electron_miniPFRelIso_all",
 ]
 Electron_observables = Electron_int_observables + Electron_float_observables
 JetObservables = [
