@@ -36,7 +36,6 @@ OnlyData:
   data:
     - Data_Full
 
-
 Run3_Model:
   name: "Run3 Model"
   backgrounds:
@@ -46,6 +45,7 @@ Run3_Model:
     - ST
     - VV
     - W
+    - QCD_PT
   signals:
     - XtoHHto2B2W_SingleLepton
     - XtoHHto2B2W_DoubleLepton

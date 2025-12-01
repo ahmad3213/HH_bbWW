@@ -269,6 +269,19 @@ class DataFrameBuilderForHistograms(DataFrameBuilderBase):
         self.DefineAndAppend("SS_Iso", f"SS && Iso && event_selection")
         self.DefineAndAppend("OS_AntiIso", f"OS && AntiIso && event_selection")
         self.DefineAndAppend("SS_AntiIso", f"SS && AntiIso && event_selection")
+        # MR
+        self.DefineAndAppend(
+            "mbbCR_Tight",
+            "Single_lep_trg && "
+            "tightlep && "
+            "!(bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino > 70 && bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino < 150)",
+        )
+        self.DefineAndAppend(
+            "mbbCR_AntiTight",
+            "Single_lep_trg && "
+            "!tightlep && "
+            "!(bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino > 70 && bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino < 150)",
+        )
 
     def defineControlRegions(self):
         # Define Single Muon Control Region (W Region) -- Require Muon + High MT (>50)
@@ -294,15 +307,15 @@ class DataFrameBuilderForHistograms(DataFrameBuilderBase):
             "TTbar_CR", f"OS_Iso && lep1_legType == lep2_legType && diLep_mass > 100 "
         )
         self.DefineAndAppend(
-            "mbb_SR",
-            f"bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino > 70 && bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino < 150",
-        )
-        self.DefineAndAppend(
             "Lep1Lep2Jet1Jet2_mass",
             f"(lep1_legType == 2 && lep2_legType == 2) ? Lep1Lep2Jet1Jet2_p4.mass() : 0.0",
         )
         self.DefineAndAppend(
             "Lep1Jet1Jet2_mass", f"(lep1_legType == 2) ? Lep1Jet1Jet2_p4.mass() : 0.0"
+        )
+        self.DefineAndAppend(
+            "mbb_SR",
+            f"bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino > 70 && bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino < 150",
         )
 
     def addDYReweighting(self):
@@ -401,7 +414,6 @@ def defineAllP4(df):
             f"{met_var}_p4",
             f"ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double>>({met_var}_pt,0.,{met_var}_phi,0.)",
         )
-
     return df
 
 
@@ -497,7 +509,20 @@ def AddDNNVariables(df):
         "Lep1Jet1Jet2_p4",
         "(centralJet_pt.size() >= 2) ? (lep1_p4+centralJet_p4[0]+centralJet_p4[1]) : LorentzVectorM()",
     )
+    # temporary adding here
+    # fixed PT values for mT_fix (decorrelated from lepton pt)
+    # 35 GeV for muons, 30 GeV for electrons
+    df = df.Define(
+        "pT_fix", "(lep1_legType == static_cast<int>(Leg::mu) ? 35.0 : 30.0)"
+    )
 
+    # dphi between lepton and MET using VectorUtil
+    df = df.Define(
+        "dphi_fix", "abs(ROOT::Math::VectorUtil::DeltaPhi(lep1_p4, PuppiMET_p4))"
+    )
+
+    # fixed transverse mass
+    df = df.Define("mT_fix", "sqrt(2.0 * pT_fix * PuppiMET_pt * (1.0 - cos(dphi_fix)))")
     return df
 
 

@@ -1,22 +1,3 @@
-GLOBAL:
-  triggerFile: config/Run3_2023/triggers.yaml
-  sampleSelection:
-    - drop ^.*
-    - keep ^TT.*
-    - keep ^ST.*
-    - keep ^GluGlutoRadiontoHHto2B2Vto2B2L2Nu.*
-    - keep DYto2L_M-10to50_amcatnloFXFX
-    - keep DYto2L_M-50_amcatnloFXFX
-    - keep WtoLNu_amcatnloFXFX
-    - keep WW
-    - keep WZ
-    - keep ZZ
-    - keep ^EGamma_.*
-    - keep ^Muon_.*
-    - keep ^DoubleMuon_.*
-    - keep ^SingleMuon_.*
-    - keep ^MuonEG_.*
-  use_stitching: false
 # Started YH samples #
 XtoYHto2B2Wto2B2L2Nu_MX_1000_MY_100:
   sampleType: XtoYH
@@ -2766,6 +2747,12 @@ XtoYHto2B2Wto2B2Q1L1Nu_MX_4000_MY_125:
   spin: 0
   crossSection: 1pb
   generator: madgraph
+XtoYHto2B2Wto2B2Q1L1Nu_MX_4000_MY_1400:
+  sampleType: XtoYH
+  mass: 4000
+  spin: 0
+  crossSection: 1pb
+  generator: madgraph
 XtoYHto2B2Wto2B2Q1L1Nu_MX_4000_MY_150:
   sampleType: XtoYH
   mass: 4000
@@ -5004,12 +4991,6 @@ XtoYHto2W2Bto2Q1L1Nu2B_MX_900_MY_600:
   spin: 0
   crossSection: 1pb
   generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_1000_MY_400:
-  sampleType: XtoYH
-  mass: 1000
-  spin: 0
-  crossSection: 1pb
-  generator: madgraph
 XtoYHto2Z2Bto2L2J2B_MX_1000_MY_600:
   sampleType: XtoYH
   mass: 1000
@@ -5022,27 +5003,27 @@ XtoYHto2Z2Bto2L2J2B_MX_1000_MY_800:
   spin: 0
   crossSection: 1pb
   generator: madgraph
+XtoYHto2Z2Bto2L2J2B_MX_1200_MY_200:
+  sampleType: XtoYH
+  mass: 1200
+  spin: 0
+  crossSection: 1pb
+  generator: madgraph
+XtoYHto2Z2Bto2L2J2B_MX_1200_MY_300:
+  sampleType: XtoYH
+  mass: 1200
+  spin: 0
+  crossSection: 1pb
+  generator: madgraph
 XtoYHto2Z2Bto2L2J2B_MX_1200_MY_400:
   sampleType: XtoYH
   mass: 1200
   spin: 0
   crossSection: 1pb
   generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_1200_MY_600:
+XtoYHto2Z2Bto2L2J2B_MX_1200_MY_500:
   sampleType: XtoYH
   mass: 1200
-  spin: 0
-  crossSection: 1pb
-  generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_1200_MY_800:
-  sampleType: XtoYH
-  mass: 1200
-  spin: 0
-  crossSection: 1pb
-  generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_1400_MY_1000:
-  sampleType: XtoYH
-  mass: 1400
   spin: 0
   crossSection: 1pb
   generator: madgraph
@@ -5052,7 +5033,13 @@ XtoYHto2Z2Bto2L2J2B_MX_1400_MY_1200:
   spin: 0
   crossSection: 1pb
   generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_1400_MY_200:
+XtoYHto2Z2Bto2L2J2B_MX_1400_MY_300:
+  sampleType: XtoYH
+  mass: 1400
+  spin: 0
+  crossSection: 1pb
+  generator: madgraph
+XtoYHto2Z2Bto2L2J2B_MX_1400_MY_400:
   sampleType: XtoYH
   mass: 1400
   spin: 0
@@ -5070,43 +5057,37 @@ XtoYHto2Z2Bto2L2J2B_MX_1600_MY_1000:
   spin: 0
   crossSection: 1pb
   generator: madgraph
+XtoYHto2Z2Bto2L2J2B_MX_1600_MY_1200:
+  sampleType: XtoYH
+  mass: 1600
+  spin: 0
+  crossSection: 1pb
+  generator: madgraph
+XtoYHto2Z2Bto2L2J2B_MX_1600_MY_300:
+  sampleType: XtoYH
+  mass: 1600
+  spin: 0
+  crossSection: 1pb
+  generator: madgraph
 XtoYHto2Z2Bto2L2J2B_MX_1600_MY_400:
   sampleType: XtoYH
   mass: 1600
   spin: 0
   crossSection: 1pb
   generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_1600_MY_500:
+XtoYHto2Z2Bto2L2J2B_MX_1600_MY_800:
   sampleType: XtoYH
   mass: 1600
   spin: 0
   crossSection: 1pb
   generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_1800_MY_1000:
+XtoYHto2Z2Bto2L2J2B_MX_1800_MY_1400:
   sampleType: XtoYH
   mass: 1800
   spin: 0
   crossSection: 1pb
   generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_1800_MY_1200:
-  sampleType: XtoYH
-  mass: 1800
-  spin: 0
-  crossSection: 1pb
-  generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_1800_MY_200:
-  sampleType: XtoYH
-  mass: 1800
-  spin: 0
-  crossSection: 1pb
-  generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_1800_MY_400:
-  sampleType: XtoYH
-  mass: 1800
-  spin: 0
-  crossSection: 1pb
-  generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_1800_MY_500:
+XtoYHto2Z2Bto2L2J2B_MX_1800_MY_800:
   sampleType: XtoYH
   mass: 1800
   spin: 0
@@ -5124,21 +5105,21 @@ XtoYHto2Z2Bto2L2J2B_MX_2000_MY_1200:
   spin: 0
   crossSection: 1pb
   generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_2000_MY_500:
+XtoYHto2Z2Bto2L2J2B_MX_2000_MY_1400:
   sampleType: XtoYH
   mass: 2000
   spin: 0
   crossSection: 1pb
   generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_2500_MY_1000:
+XtoYHto2Z2Bto2L2J2B_MX_2000_MY_1600:
   sampleType: XtoYH
-  mass: 2500
+  mass: 2000
   spin: 0
   crossSection: 1pb
   generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_2500_MY_1400:
+XtoYHto2Z2Bto2L2J2B_MX_2000_MY_800:
   sampleType: XtoYH
-  mass: 2500
+  mass: 2000
   spin: 0
   crossSection: 1pb
   generator: madgraph
@@ -5148,7 +5129,25 @@ XtoYHto2Z2Bto2L2J2B_MX_2500_MY_1600:
   spin: 0
   crossSection: 1pb
   generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_2500_MY_800:
+XtoYHto2Z2Bto2L2J2B_MX_2500_MY_200:
+  sampleType: XtoYH
+  mass: 2500
+  spin: 0
+  crossSection: 1pb
+  generator: madgraph
+XtoYHto2Z2Bto2L2J2B_MX_2500_MY_2000:
+  sampleType: XtoYH
+  mass: 2500
+  spin: 0
+  crossSection: 1pb
+  generator: madgraph
+XtoYHto2Z2Bto2L2J2B_MX_2500_MY_300:
+  sampleType: XtoYH
+  mass: 2500
+  spin: 0
+  crossSection: 1pb
+  generator: madgraph
+XtoYHto2Z2Bto2L2J2B_MX_2500_MY_600:
   sampleType: XtoYH
   mass: 2500
   spin: 0
@@ -5166,30 +5165,6 @@ XtoYHto2Z2Bto2L2J2B_MX_3000_MY_1200:
   spin: 0
   crossSection: 1pb
   generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_3000_MY_1600:
-  sampleType: XtoYH
-  mass: 3000
-  spin: 0
-  crossSection: 1pb
-  generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_3000_MY_200:
-  sampleType: XtoYH
-  mass: 3000
-  spin: 0
-  crossSection: 1pb
-  generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_3000_MY_2000:
-  sampleType: XtoYH
-  mass: 3000
-  spin: 0
-  crossSection: 1pb
-  generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_3000_MY_2600:
-  sampleType: XtoYH
-  mass: 3000
-  spin: 0
-  crossSection: 1pb
-  generator: madgraph
 XtoYHto2Z2Bto2L2J2B_MX_3000_MY_400:
   sampleType: XtoYH
   mass: 3000
@@ -5202,25 +5177,13 @@ XtoYHto2Z2Bto2L2J2B_MX_3000_MY_500:
   spin: 0
   crossSection: 1pb
   generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_3500_MY_1000:
+XtoYHto2Z2Bto2L2J2B_MX_3500_MY_2600:
   sampleType: XtoYH
   mass: 3500
   spin: 0
   crossSection: 1pb
   generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_3500_MY_2000:
-  sampleType: XtoYH
-  mass: 3500
-  spin: 0
-  crossSection: 1pb
-  generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_3500_MY_600:
-  sampleType: XtoYH
-  mass: 3500
-  spin: 0
-  crossSection: 1pb
-  generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_3500_MY_800:
+XtoYHto2Z2Bto2L2J2B_MX_3500_MY_3000:
   sampleType: XtoYH
   mass: 3500
   spin: 0
@@ -5232,13 +5195,19 @@ XtoYHto2Z2Bto2L2J2B_MX_4000_MY_1000:
   spin: 0
   crossSection: 1pb
   generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_4000_MY_1400:
+XtoYHto2Z2Bto2L2J2B_MX_4000_MY_1800:
   sampleType: XtoYH
   mass: 4000
   spin: 0
   crossSection: 1pb
   generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_4000_MY_400:
+XtoYHto2Z2Bto2L2J2B_MX_4000_MY_2600:
+  sampleType: XtoYH
+  mass: 4000
+  spin: 0
+  crossSection: 1pb
+  generator: madgraph
+XtoYHto2Z2Bto2L2J2B_MX_4000_MY_3000:
   sampleType: XtoYH
   mass: 4000
   spin: 0
@@ -5250,7 +5219,13 @@ XtoYHto2Z2Bto2L2J2B_MX_4000_MY_600:
   spin: 0
   crossSection: 1pb
   generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_550_MY_300:
+XtoYHto2Z2Bto2L2J2B_MX_500_MY_200:
+  sampleType: XtoYH
+  mass: 500
+  spin: 0
+  crossSection: 1pb
+  generator: madgraph
+XtoYHto2Z2Bto2L2J2B_MX_550_MY_200:
   sampleType: XtoYH
   mass: 550
   spin: 0
@@ -5262,25 +5237,13 @@ XtoYHto2Z2Bto2L2J2B_MX_550_MY_400:
   spin: 0
   crossSection: 1pb
   generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_650_MY_500:
+XtoYHto2Z2Bto2L2J2B_MX_600_MY_300:
   sampleType: XtoYH
-  mass: 650
+  mass: 600
   spin: 0
   crossSection: 1pb
   generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_700_MY_300:
-  sampleType: XtoYH
-  mass: 700
-  spin: 0
-  crossSection: 1pb
-  generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_700_MY_400:
-  sampleType: XtoYH
-  mass: 700
-  spin: 0
-  crossSection: 1pb
-  generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_800_MY_200:
+XtoYHto2Z2Bto2L2J2B_MX_800_MY_400:
   sampleType: XtoYH
   mass: 800
   spin: 0
@@ -5292,7 +5255,7 @@ XtoYHto2Z2Bto2L2J2B_MX_800_MY_600:
   spin: 0
   crossSection: 1pb
   generator: madgraph
-XtoYHto2Z2Bto2L2J2B_MX_900_MY_500:
+XtoYHto2Z2Bto2L2J2B_MX_900_MY_400:
   sampleType: XtoYH
   mass: 900
   spin: 0

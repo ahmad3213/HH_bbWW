@@ -1814,3 +1814,10 @@ HMEinDNNBins_HME_mass_SL_DNN_M800_0p8_1p0:
   max_y_sf: 1.5
   divide_by_bin_width: False
   blind: True
+mT_fix:
+  x_bins: "40|0:200"
+  x_title: m_T (fix) [GeV]
+  y_title: Events
+  use_log_y: True
+  max_y_sf: 1.5
+  divide_by_bin_width: False
