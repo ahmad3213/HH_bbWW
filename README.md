@@ -2,7 +2,7 @@
 
 ## How to run anaTuple production
 
-Current version `v2601`
+Current version `v2601a`
 
 1. Clone repository
    ```bash
