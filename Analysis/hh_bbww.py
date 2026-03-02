@@ -1,4 +1,6 @@
 import ROOT
+import json
+import numpy as np
 
 if __name__ == "__main__":
     sys.path.append(os.environ["ANALYSIS_PATH"])
@@ -12,7 +14,6 @@ WorkingPointsParticleNet = {
     "Run3_2023": {"Loose": 0.0358, "Medium": 0.1917, "Tight": 0.6172},
     "Run3_2023BPix": {"Loose": 0.0359, "Medium": 0.1919, "Tight": 0.6133},
 }
-
 
 def createKeyFilterDict(global_params, period):
     filter_dict = {}
@@ -140,6 +141,7 @@ class DataFrameBuilderForHistograms(DataFrameBuilderBase):
             f"(DL && centralJet_pt.size() >= 2) || (SL && centralJet_pt.size() >= 4)",
         )
         self.DefineAndAppend("res2b", f"resolved && nSelBtag_jets >= 2")
+        self.DefineAndAppend("res0b", f"resolved && nSelBtag_jets == 0")
         self.DefineAndAppend(
             "boosted",
             f"!res2b && nSelBtag_fatjets > 0 && (DL || (SL && SelectedFatJet_pt.size() > 1) || (SL && centralJet_pt.size() >= 2) ) ",
@@ -260,18 +262,99 @@ class DataFrameBuilderForHistograms(DataFrameBuilderBase):
         self.DefineAndAppend("SS_Iso", f"SS && Iso && event_selection")
         self.DefineAndAppend("OS_AntiIso", f"OS && AntiIso && event_selection")
         self.DefineAndAppend("SS_AntiIso", f"SS && AntiIso && event_selection")
-        # MR
+        # Tight-ID MR
         self.DefineAndAppend(
-            "mbbCR_Tight",
+            "MR_mbbCR_TightID_TightIso",
             "Single_lep_trg && "
+            "SL && "
             "tightlep && "
-            "!(bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino > 70 && bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino < 150)",
+            "resolved && "
+            "((lep1_legType == 1) || (lep1_legType == 2 && lep1_Muon_pfRelIso04_all < 0.15)) && "
+            "!(centralJet_pt.size() >= 3 && nSelBtag_jets >= 2 && "
+            "  bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino > 70 && "
+            "  bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino < 150)"
         )
         self.DefineAndAppend(
-            "mbbCR_AntiTight",
+            "MR_mbbCR_TightID",
             "Single_lep_trg && "
+            "SL && "
+            "tightlep && "
+            "resolved && "
+            "!(centralJet_pt.size() >= 3 && nSelBtag_jets >= 2 && "
+            "  bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino > 70 && "
+            "  bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino < 150)"
+        )
+        # Anti-ID MR
+        self.DefineAndAppend(
+            "MR_mbbCR_AntiTightID",
+            "Single_lep_trg && "
+            "SL && "
             "!tightlep && "
-            "!(bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino > 70 && bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino < 150)",
+            "resolved && "
+            "!(centralJet_pt.size() >= 3 && nSelBtag_jets >= 2 && "
+            "  bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino > 70 && "
+            "  bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino < 150)"
+        )
+        self.DefineAndAppend(
+            "MR_mbbCR_AntiTightID_or_AntiTightIso",
+            "Single_lep_trg && "
+            "SL && "
+            "resolved && "
+            "(!tightlep || (lep1_legType == 2 && lep1_Muon_pfRelIso04_all > 0.15)) && "
+            "!(centralJet_pt.size() >= 3 && nSelBtag_jets >= 2 && "
+            "bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino > 70 && "
+            "bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino < 150)"
+        )
+        self.DefineAndAppend(
+            "MR_mbbCR_AntiIso",
+            "Single_lep_trg && "
+            "resolved && "
+            "(lep1_legType == 2 && lep1_Muon_pfRelIso04_all > 0.15  ) && "
+            "!(centralJet_pt.size() >= 3 && nSelBtag_jets >= 2 && "
+            "bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino > 70 && "
+            "bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino < 150)"
+        )
+        self.DefineAndAppend(
+            "MR_mbbCR_Iso",
+            "Single_lep_trg && "
+            "SL && "
+            "resolved && "
+            "(lep1_legType == 2 && lep1_Muon_pfRelIso04_all < 0.15) && "
+            "!(centralJet_pt.size() >= 3 && nSelBtag_jets >= 2 && "
+            "bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino > 70 && "
+            "bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino < 150)"
+        )
+        # Tight-ID AR
+        self.DefineAndAppend(
+            "AR_mbbCR_TightID_TightIso",
+            "MR_mbbCR_TightID_TightIso && "
+            "centralJet_pt.size() >= 3 && nSelBtag_jets >= 1"
+        )
+        self.DefineAndAppend(
+            "AR_mbbCR_TightID",
+            "MR_mbbCR_TightID && "
+            "centralJet_pt.size() >= 3 && nSelBtag_jets >= 1"
+        )
+        # Anti-ID AR
+        self.DefineAndAppend(
+            "AR_mbbCR_AntiTightID",
+            "MR_mbbCR_AntiTightID && "
+            "centralJet_pt.size() >= 3 && nSelBtag_jets >= 1"
+        )
+        self.DefineAndAppend(
+            "AR_mbbCR_AntiTightID_or_AntiTightIso",
+            "MR_mbbCR_AntiTightID_or_AntiTightIso && "
+            "centralJet_pt.size() >= 3 && nSelBtag_jets >= 1"
+        )
+        self.DefineAndAppend(
+            "AR_mbbCR_AntiIso",
+            "MR_mbbCR_AntiIso && "
+            "centralJet_pt.size() >= 3 && nSelBtag_jets >= 1"
+        )
+        self.DefineAndAppend(
+            "AR_mbbCR_Iso",
+            "MR_mbbCR_Iso && "
+            "centralJet_pt.size() >= 3 && nSelBtag_jets >= 1"
         )
 
     def defineControlRegions(self):
@@ -508,11 +591,14 @@ def AddDNNVariables(df):
     )
     # dphi between lepton and MET using VectorUtil
     df = df.Define(
-        "dphi_fix", "abs(ROOT::Math::VectorUtil::DeltaPhi(lep1_p4, PuppiMET_p4))"
+        "dphi", "abs(ROOT::Math::VectorUtil::DeltaPhi(lep1_p4, PuppiMET_p4))"
     )
     # fixed transverse mass
-    df = df.Define("mT_fix", "sqrt(2.0 * pT_fix * PuppiMET_pt * (1.0 - cos(dphi_fix)))")
-
+    df = df.Define("mT_fix", "sqrt(2.0 * pT_fix * PuppiMET_pt * (1.0 - cos(dphi)))")
+    #transverse mass SL
+    df = df.Define("mT_SL", "sqrt(2.0 * lep1_pt * PuppiMET_pt * (1.0 - cos(dphi)))")
+    df = df.Define("lep1_pt_FF", "lep1_pt")
+    df = df.Define("lep1_eta_FF", "abs(lep1_eta)")
     return df
 
 
@@ -522,9 +608,9 @@ def PrepareDfForHistograms(dfForHistograms, isData):
     dfForHistograms.defineTriggers()
     dfForHistograms.defineLeptonPreselection()
     dfForHistograms.defineJetSelections(isData)
+    dfForHistograms.defineCategories()
     dfForHistograms.defineQCDRegions()
     dfForHistograms.defineControlRegions()
-    dfForHistograms.defineCategories()
     dfForHistograms.addDYReweighting()
     dfForHistograms.calculateMT()
     dfForHistograms.defineCutFlow()

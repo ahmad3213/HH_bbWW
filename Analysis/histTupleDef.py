@@ -4,6 +4,7 @@ from FLAF.Common.HistHelper import *
 from Corrections.Corrections import Corrections
 from Corrections.CorrectionsCore import getSystName, central
 from FLAF.Common.Setup import Setup
+import ROOT
 
 if __name__ == "__main__":
     sys.path.append(os.environ["ANALYSIS_PATH"])
@@ -58,10 +59,11 @@ def DefineWeightForHistograms(
 ):
     global central_df_weights_computed
     is_central = uncName == central
+    corrections = Corrections.getGlobal()
+    lepton_legs = ["lep1", "lep2"]
+    offline_legs = ["lep1", "lep2"]
     if not isData and (not central_df_weights_computed or not df_is_central):
-        corrections = Corrections.getGlobal()
-        lepton_legs = ["lep1", "lep2"]
-        offline_legs = ["lep1", "lep2"]
+        #corrections = Corrections.getGlobal()
         triggers_to_use = set()
         channels = global_params["channelSelection"]
         for channel in channels:
@@ -87,6 +89,14 @@ def DefineWeightForHistograms(
         if df_is_central:
             central_df_weights_computed = True
 
+    # Now define fake factor branches (just save, no multiplication)
+    # Ensure ROOT sees the real C++ function signatures
+    if "fake_factor" in corrections.to_apply:
+        dfw.df = corrections.fake_factor.define_branches(dfw.df, lepton_legs)
+    print(dfw.df.GetColumnType("weight_lep1_FakeFactor"))
+    print(dfw.df.GetColumnType("weight_lep1_FakeFactorErr"))
+    print(dfw.df.GetColumnType("weight_lep2_FakeFactor"))
+    print(dfw.df.GetColumnType("weight_lep2_FakeFactorErr"))
     categories = global_params["categories"]
     boosted_categories = global_params.get("boosted_categories", [])
     process_group = global_params["process_group"]
@@ -99,6 +109,10 @@ def DefineWeightForHistograms(
     weight_name = "final_weight"
     if weight_name not in dfw.df.GetColumnNames():
         dfw.df = dfw.df.Define(weight_name, total_weight_expression)
+    weight_name_fakes = "final_weight_fakes"
+    total_weight_expression_fakes = f"total_weight_expression * weight_lep1_FakeFactor"
+    if weight_name_fakes not in dfw.df.GetColumnNames():
+        dfw.df = dfw.df.Define(weight_name_fakes, total_weight_expression_fakes)
     if not is_central and type(unc_cfg_dict) == dict:
         if (
             uncName in unc_cfg_dict["norm"].keys()

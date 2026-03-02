@@ -1834,3 +1834,40 @@ SL_DNN_m1000_vs_HME:
   divide_by_bin_width: False
   blind: True
   var_list: [ DNNParametric_SL_NoHME_M1000_Signal, SingleLep_DeepHME_mass ]
+mT_fix:
+  x_bins: "40|0:200"
+  x_title: m_T (fix) [GeV]
+  y_title: Events
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+mT_SL:
+  x_bins: "40|0:200"
+  x_title: m_T [GeV]
+  y_title: Events
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+pt_ll:
+  x_bins: "50|20:500"
+  x_title:  p_T(ll) [GeV]
+  y_title: Events
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+
+lep1_eta_FF:
+  x_bins: [0, 0.9, 1.2, 2.5]
+  x_title: lep1_eta
+  y_title: Events
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False
+
+lep1_pt_FF:
+  x_bins: [20, 25, 30, 40, 60, 100, 10000]
+  x_title: lep1_pt [GeV]
+  y_title: Events
+  use_log_y: False
+  max_y_sf: 1.5
+  divide_by_bin_width: False

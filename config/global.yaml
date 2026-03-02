@@ -2,7 +2,8 @@ anaTupleDef: AnaProd/anaTupleDef.py
 histTupleDef: Analysis/histTupleDef.py
 analysis_import: Analysis.hh_bbww
 analysis_cache_import: Analysis.tasks:AnalysisCacheTask:AnalysisCacheMergeTask
-phys_model: Run3_Model
+# phys_model: Run3_Model
+phys_model: OnlyData
 corrections:
   mu:
     stage: HistTuple
@@ -37,6 +38,9 @@ corrections:
       HistTuple: shape
     tagger: particleNet
     jetCollection: centralJet
+  fake_factor:
+    stage: HistTuple
+    # region_prefix: AR_mbbCR_
 extraFormat_for_triggerMatchingAndSF:
   pt: "nano"
 muon_pt_for_presel: "nano"
@@ -286,6 +290,7 @@ categories:
   - inclusive
   - recovery
   - res2b
+  - res0b
   - boosted
   - baseline
 
@@ -296,9 +301,14 @@ QCDRegions:
   - SS_AntiIso
   - ZVeto_OS_Iso
   - ZPeak_OS_Iso
-  - mbbCR_Tight
-  - mbbCR_AntiTight
-
+  - mbbCR_TightID_TightIso
+  - mbbCR_TightID
+  - mbbCR_AntiTightID
+  - mbbCR_AntiTightID_or_AntiTightIso
+  - mbbCR_AntiIso
+  - mbbCR_Iso
+  - TTbar_CR
+  #Above fours are new naming
 boosted_categories: [ ]
 
 
@@ -339,18 +349,21 @@ met_type: "PuppiMET"
 # DNN Inputs
 variables:
   - lep1_pt
+  - lep1_pt_FF # temp binning for FF
   - lep1_eta
+  - lep1_eta_FF # temp binning for FF
   - lep1_phi
   - lep1_mass
-
-  - name: lep1_pt_vs_eta
-    vars: [ lep1_pt, lep1_eta ]
-    plot_task: False
+  # - lep1_gen_kind
+  # - name: lep1_pt_vs_eta
+  #   vars: [ lep1_pt, lep1_eta ]
+  #   plot_task: False
 
   - lep2_pt
   - lep2_eta
   - lep2_phi
   - lep2_mass
+  # - lep2_gen_kind
 
   - PuppiMET_pt
   - PuppiMET_phi
@@ -367,14 +380,12 @@ variables:
   - bjet2_mass
   - bjet2_btagPNetB
 
-  - fatbjet_pt
-  - fatbjet_eta
-  - fatbjet_phi
-  - fatbjet_mass
-  - fatbjet_XbbVsQCD
-
+  # - fatbjet_pt
+  # - fatbjet_eta
+  # - fatbjet_phi
+  # - fatbjet_mass
+  # - fatbjet_XbbVsQCD
   - bb_mass_PNetRegPtRawCorr_PNetRegPtRawCorrNeutrino
-
   - HT
   - dR_dilep
   - dR_dibjet
@@ -390,13 +401,12 @@ variables:
   - MT2_blbl
   - ll_mass
   - CosTheta_bb
-
   - lep1_Muon_pfRelIso04_all
   - lep2_Muon_pfRelIso04_all
   - lep1_Electron_pfRelIso03_all
   - lep2_Electron_pfRelIso03_all
-  - mT_fix
-
+  # - mT_fix
+  # - mT_SL
   # High Level Single Lepton
   - SingleLep_DeepHME_mass
   - SingleLep_DeepHME_mass_error
@@ -405,62 +415,62 @@ variables:
   - DoubleLep_DeepHME_mass
   - DoubleLep_DeepHME_mass_error
 
-  - name: DL_DNN_m300_vs_HME
-    vars: [ DNNParametric_DL_NoHME_M300_Signal, DoubleLep_DeepHME_mass ]
+  # - name: DL_DNN_m300_vs_HME
+  #   vars: [ DNNParametric_DL_NoHME_M300_Signal, DoubleLep_DeepHME_mass ]
 
-  - name: DL_DNN_m400_vs_HME
-    vars: [ DNNParametric_DL_NoHME_M400_Signal, DoubleLep_DeepHME_mass ]
+  # - name: DL_DNN_m400_vs_HME
+  #   vars: [ DNNParametric_DL_NoHME_M400_Signal, DoubleLep_DeepHME_mass ]
 
-  - name: DL_DNN_m500_vs_HME
-    vars: [ DNNParametric_DL_NoHME_M500_Signal, DoubleLep_DeepHME_mass ]
+  # - name: DL_DNN_m500_vs_HME
+  #   vars: [ DNNParametric_DL_NoHME_M500_Signal, DoubleLep_DeepHME_mass ]
 
-  - name: DL_DNN_m550_vs_HME
-    vars: [ DNNParametric_DL_NoHME_M550_Signal, DoubleLep_DeepHME_mass ]
+  # - name: DL_DNN_m550_vs_HME
+  #   vars: [ DNNParametric_DL_NoHME_M550_Signal, DoubleLep_DeepHME_mass ]
 
-  - name: DL_DNN_m600_vs_HME
-    vars: [ DNNParametric_DL_NoHME_M600_Signal, DoubleLep_DeepHME_mass ]
+  # - name: DL_DNN_m600_vs_HME
+  #   vars: [ DNNParametric_DL_NoHME_M600_Signal, DoubleLep_DeepHME_mass ]
 
-  - name: DL_DNN_m650_vs_HME
-    vars: [ DNNParametric_DL_NoHME_M650_Signal, DoubleLep_DeepHME_mass ]
+  # - name: DL_DNN_m650_vs_HME
+  #   vars: [ DNNParametric_DL_NoHME_M650_Signal, DoubleLep_DeepHME_mass ]
 
-  - name: DL_DNN_m700_vs_HME
-    vars: [ DNNParametric_DL_NoHME_M700_Signal, DoubleLep_DeepHME_mass ]
+  # - name: DL_DNN_m700_vs_HME
+  #   vars: [ DNNParametric_DL_NoHME_M700_Signal, DoubleLep_DeepHME_mass ]
 
-  - name: DL_DNN_m800_vs_HME
-    vars: [ DNNParametric_DL_NoHME_M800_Signal, DoubleLep_DeepHME_mass ]
+  # - name: DL_DNN_m800_vs_HME
+  #   vars: [ DNNParametric_DL_NoHME_M800_Signal, DoubleLep_DeepHME_mass ]
 
-  - name: DL_DNN_m900_vs_HME
-    vars: [ DNNParametric_DL_NoHME_M900_Signal, DoubleLep_DeepHME_mass ]
+  # - name: DL_DNN_m900_vs_HME
+  #   vars: [ DNNParametric_DL_NoHME_M900_Signal, DoubleLep_DeepHME_mass ]
 
-  - name: DL_DNN_m1000_vs_HME
-    vars: [ DNNParametric_DL_NoHME_M1000_Signal, DoubleLep_DeepHME_mass ]
+  # - name: DL_DNN_m1000_vs_HME
+  #   vars: [ DNNParametric_DL_NoHME_M1000_Signal, DoubleLep_DeepHME_mass ]
 
-  - name: SL_DNN_m300_vs_HME
-    vars: [ DNNParametric_SL_NoHME_M300_Signal, SingleLep_DeepHME_mass ]
+  # - name: SL_DNN_m300_vs_HME
+  #   vars: [ DNNParametric_SL_NoHME_M300_Signal, SingleLep_DeepHME_mass ]
 
-  - name: SL_DNN_m400_vs_HME
-    vars: [ DNNParametric_SL_NoHME_M400_Signal, SingleLep_DeepHME_mass ]
+  # - name: SL_DNN_m400_vs_HME
+  #   vars: [ DNNParametric_SL_NoHME_M400_Signal, SingleLep_DeepHME_mass ]
 
-  - name: SL_DNN_m500_vs_HME
-    vars: [ DNNParametric_SL_NoHME_M500_Signal, SingleLep_DeepHME_mass ]
+  # - name: SL_DNN_m500_vs_HME
+  #   vars: [ DNNParametric_SL_NoHME_M500_Signal, SingleLep_DeepHME_mass ]
 
-  - name: SL_DNN_m550_vs_HME
-    vars: [ DNNParametric_SL_NoHME_M550_Signal, SingleLep_DeepHME_mass ]
+  # - name: SL_DNN_m550_vs_HME
+  #   vars: [ DNNParametric_SL_NoHME_M550_Signal, SingleLep_DeepHME_mass ]
 
-  - name: SL_DNN_m600_vs_HME
-    vars: [ DNNParametric_SL_NoHME_M600_Signal, SingleLep_DeepHME_mass ]
+  # - name: SL_DNN_m600_vs_HME
+  #   vars: [ DNNParametric_SL_NoHME_M600_Signal, SingleLep_DeepHME_mass ]
 
-  - name: SL_DNN_m650_vs_HME
-    vars: [ DNNParametric_SL_NoHME_M650_Signal, SingleLep_DeepHME_mass ]
+  # - name: SL_DNN_m650_vs_HME
+  #   vars: [ DNNParametric_SL_NoHME_M650_Signal, SingleLep_DeepHME_mass ]
 
-  - name: SL_DNN_m700_vs_HME
-    vars: [ DNNParametric_SL_NoHME_M700_Signal, SingleLep_DeepHME_mass ]
+  # - name: SL_DNN_m700_vs_HME
+  #   vars: [ DNNParametric_SL_NoHME_M700_Signal, SingleLep_DeepHME_mass ]
 
-  - name: SL_DNN_m800_vs_HME
-    vars: [ DNNParametric_SL_NoHME_M800_Signal, SingleLep_DeepHME_mass ]
+  # - name: SL_DNN_m800_vs_HME
+  #   vars: [ DNNParametric_SL_NoHME_M800_Signal, SingleLep_DeepHME_mass ]
 
-  - name: SL_DNN_m900_vs_HME
-    vars: [ DNNParametric_SL_NoHME_M900_Signal, SingleLep_DeepHME_mass ]
+  # - name: SL_DNN_m900_vs_HME
+  #   vars: [ DNNParametric_SL_NoHME_M900_Signal, SingleLep_DeepHME_mass ]
 
-  - name: SL_DNN_m1000_vs_HME
-    vars: [ DNNParametric_SL_NoHME_M1000_Signal, SingleLep_DeepHME_mass ]
+  # - name: SL_DNN_m1000_vs_HME
+  #   vars: [ DNNParametric_SL_NoHME_M1000_Signal, SingleLep_DeepHME_mass ]
