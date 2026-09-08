@@ -9,6 +9,8 @@ phys_model: TestModel
 
 QCDRegions:
   - OS_Iso
+  - OS_AntiIso
+  - AR_AntiTightId
 
 StatInference:
   config: config/Datacards/CI_card.yaml

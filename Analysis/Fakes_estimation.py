@@ -89,7 +89,6 @@ def AddFakesInHistDict_BBWW(
 
 
 def _get_data_minus_mc(histograms, backgrounds_list, key, data_process_name):
-
     if data_process_name not in histograms:
         raise KeyError(f"Missing data process {data_process_name}")
     if key not in histograms[data_process_name]:
@@ -196,9 +195,9 @@ def AddFakesInHistDict_BBWW_TransferFactor(
                     continue
 
                 # Fakes = data -MC for Anti tight region only
-                if channel == "e":
+                if channel in ("e", "eE", "eMu"):
                     anti_key = ((channel, "AR_AntiTightId", cat), (uncName, scale))
-                if channel == "mu":
+                if channel in ("mu", "muMu"):
                     anti_key = ((channel, "OS_AntiIso", cat), (uncName, scale))
                 hist_anti = _get_data_minus_mc(
                     all_histograms, backgrounds, anti_key, data_process_name

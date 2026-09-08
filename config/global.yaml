@@ -429,7 +429,7 @@ custom_subcategories: [ ]
 # Signal overlay scaling in HistPlotTask: a fixed factor (e.g. 100), or "bkg" to
 # normalise each signal's integral to the summed background (shape comparison).
 signal_plot_scale: bkg
-#signal_plot_scale: 2.3  # 0.3*(138/18) = 2.3
+# signal_plot_scale: 2.3  # 0.3*(138/18) = 2.3
 # Run2_limit = 0.3 for M600, Run2_Lumi = 138, 2023 lumi_2023 = 18
 
 # This is for Analysis Selection
@@ -451,9 +451,9 @@ channels_to_consider:
 channelDefinition:
   e: 1  # Second lepton doesn't exist
   mu: 2
-  # eE: 11
-  # eMu: 12
-  # muMu: 22
+  eE: 11
+  eMu: 12
+  muMu: 22
 
 categories:
   - inclusive
@@ -494,7 +494,7 @@ QCDRegions:
 fake_estimation:
   enabled: true
   method: transfer_factor
-  #method: fake_factor
+  # method: fake_factor
 
 # SL signal and control regions
   # if you are running SL Hist*Task, you might want to uncomment these so that signal regions and SRs are created for the SL channel
@@ -698,7 +698,7 @@ scales:
 deepTauVersion: 2p1
 met_type: "PuppiMET"
 
-#histTuple_flavor: default
+# histTuple_flavor: default
 histTuple_flavor: fakes_studies
 histTuple_fullResolution_variables:
 histTuple_flavors:
@@ -742,7 +742,7 @@ histTuple_flavors:
       - lep1_Electron_pfRelIso03_all
       - mT_fix
       - mT_SL
-      #High Level Single Lepton
+      # High Level Single Lepton
       - DeepHME_mass
       - DeepHME_mass_error
       - TwoStageDNN_M300_binary
@@ -776,7 +776,7 @@ histTuple_flavors:
       - name: binary_DNN_m1000_vs_HME
         vars: [ TwoStageDNN_M1000_binary, DeepHME_mass ]
   binary_DNN_outputs:
-    fullResolution_variables: []
+    fullResolution_variables: [ ]
     variables:
       - TwoStageDNN_M300_binary
       - TwoStageDNN_M400_binary

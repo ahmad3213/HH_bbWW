@@ -310,7 +310,7 @@ class DataFrameBuilderForHistograms(DataFrameBuilderBase):
             "Zveto",
             f"(lep1_legType == lep2_legType ) && (abs(ll_mass - 91.1876) > 10)",
         )
-        self.DefineAndAppend("OppFlavor", f"(lep1_legType != lep2_legType)")      
+        self.DefineAndAppend("OppFlavor", f"(lep1_legType != lep2_legType)")
         self.DefineAndAppend("SR", f"ll_mass < 70 && OS_Iso")
         self.DefineAndAppend("SR_mbb", f"ll_mass < 70 && OS_Iso && mbb_SR")
         self.DefineAndAppend("TT_CR", f"ll_mass > 110 && OS_Iso")
